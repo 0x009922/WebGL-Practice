@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset=utf-8>
+		<title>SPACE</title>
+		<style>
+			body { margin: 0; }
+			canvas { width: 100%; height: 100% }
+		</style>
+	</head>
+	<body>
+		<script src="js/three.js"></script>
+		<script>
+			const _count = 1000;
+			const _speed = [5, 10];
+			const _spawn = -5;
+
+			class Line {
+				constructor(scene) {
+					let geo = new THREE.Geometry();
+					geo.vertices.push(
+						new THREE.Vector3(0, 0, 0),
+						new THREE.Vector3(0, 0, Math.random())
+					);
+					let material = new THREE.LineBasicMaterial({
+						color: 0xffffff
+					});
+					this.line = new THREE.Line(geo, material);
+					this.speed = betweenPair(
+						_speed, Math.random()
+					);
+					this.line.position.z = _spawn;
+					let r = 5 * Math.random();
+					let a = Math.PI * 2 * Math.random();
+					this.line.position.x = r * Math.cos(a);
+					this.line.position.y = r * Math.sin(a);
+					scene.add(this.line);
+				}
+
+				update(delta) {
+					this.line.position.z += this.speed * delta;
+					if (this.line.position.z >= 6) {
+						this.line.position.z = _spawn;
+					}
+				}
+			}
+
+      var scene = new THREE.Scene();
+      var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+      var renderer = new THREE.WebGLRenderer();
+      renderer.setSize( window.innerWidth, window.innerHeight );
+      document.body.appendChild( renderer.domElement );
+			var clock = new THREE.Clock();
+
+			let lines = [];
+			for (let i = 0; i < _count; i++) {
+				lines.push(new Line(scene));
+			}
+			camera.position.z = 5;
+
+      function animate() {
+				for (let i = 0; i < _count; i++) {
+					lines[i].update(0.016);//clock.getDelta());
+				}
+
+      	requestAnimationFrame( animate );
+      	renderer.render( scene, camera );
+      }
+      animate();
+
+
+
+			function between(a, b, n) {
+        return n * (b - a) + a;
+      }
+      function betweenArray(a, b, n) {
+        return a.map( (v, i) => (
+          n * (b[i] - v) + v
+        ));
+      }
+      function betweenPair(pair, n) {
+        return n * (pair[1] - pair[0]) + pair[0];
+      }
+		</script>
+	</body>
+</html>

@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset=utf-8>
+		<title>InterActive</title>
+		<style>
+			body { margin: 0; background: black; }
+			.tile {
+				border: 2px solid white;
+				background: transparent;
+				width: 600px;
+				height: 300px;
+				transition: background 0.3s ease-in-out,
+										opacity 0.3s ease-in-out;
+				cursor: default;
+			}
+			.tile .label {
+				font-size: 80px;
+				color: white;
+				margin: 50px;
+				text-shadow: 0 0 10px white;
+				font-family: Menlo, Consolas, monospace;
+			}
+		</style>
+	</head>
+	<body>
+		<script src="three.js"></script>
+		<script src="tween.min.js"></script>
+		<script src="CSS3DRenderer.js"></script>
+		<script>
+			const _tileWidth = 600;
+			const _tileHeight = 300;
+			const _tileGap = 50;
+			const _tileMove = 100;
+			const _tileMoveDuration = 200;
+			const _tileInactiveOpacity = 0.7;
+			const _cameraMove = 300;
+			const _cameraPositionZ = 1000;
+
+			const _tile1Accent = "#000080";
+			const _t1TextSpeedIn = 0.7;
+			const _t1TextSpeedOut = 2;
+			const _t1Text = "Hello, World!";
+			const _t1CursorHz = 1;
+
+			const _tile2Accent = "#00ff7f";
+			const _t2HexagonColor = 0x00ff7f;
+			const _t2RandomRange = [0.1, 1];
+			const _t2ActDelay = [0, 1500];
+			const _t2ActDur = [300, 1000];
+			const _t2DeactDur = [300, 1500];
+			const _t2Dur = [500, 2500];
+			const _t2Easing = TWEEN.Easing.Quadratic.InOut;
+			const _t2Columns = 28;
+			const _t2Rows = 13;
+			const _t2Size = 15;
+			const _t2SizeScale = 1;
+
+			const _tile3Accent = "#FF4500";
+			const _starsCount = 100;
+			const _starsLength = 1;
+			const _starsWidth = 1;
+			const _starsWay = [-20, 5];
+			const _starsWayDuration = [0.5, 2];
+			const _starsPerSecond = 50;
+			const _starsSpawnRadius = 15;
+
+			const _tile4Accent = "#B22222";
+			const _t4IdleAngleSpeed = 0.07;
+			const _t4IdleDistanceSpeed = 0.6;
+			const _t4TriangleSize = 1.2;
+			const _t4Dist = 1;
+			const _t4ForeColor = 0xffffff;
+			const _t4CameraScale = 4;
+			const _t4TweenDuration = 800;
+			const _t4FromIdleDuration = 1000;
+			const _t4Easing = TWEEN.Easing.Quartic.InOut;
+
+			class Tile {
+				constructor(position, border, background) {
+					let tile = document.createElement("div");
+					tile.className = "tile";
+					tile.onmouseover = this._mouseOver.bind(this);
+					tile.onmouseout = this._mouseOut.bind(this);
+					tile.style.borderColor = border;
+
+					this.object = new THREE.CSS3DObject(tile);
+					this.object.position.set(
+						position.x,
+						position.y,
+						position.z
+					);
+					scene.add(this.object);
+
+					this.element = tile;
+					this.positionTween = null;
+					this.position = position;
+					this.border = border;
+					this.background = background;
+					this.active = false;
+
+					this.onActivate = null;
+					this.onDeactivate = null;
+				}
+
+				_mouseOver() {
+					this.active = true;
+				}
+				_mouseOut() {
+					this.active = false;
+				}
+
+				get active() {
+					return this._act;
+				}
+
+				set active(v) {
+					if (v != this._act) {
+						if (v) {
+							this.element.style.background = this.background;
+							this.element.style.opacity = 1;
+
+							if (this.positionTween) {
+								this.positionTween.stop();
+							}
+							this.positionTween = new TWEEN.Tween(this.object.position)
+								.to({z: this.position.z + _tileMove}, _tileMoveDuration)
+								.easing(TWEEN.Easing.Quadratic.InOut)
+								.start();
+							if (this.onActivate) this.onActivate();
+						} else {
+							this.element.style.background = "transparent";
+							this.element.style.opacity = _tileInactiveOpacity;
+
+							if (this.positionTween) {
+								this.positionTween.stop();
+							}
+							this.positionTween = new TWEEN.Tween(this.object.position)
+								.to({z: this.position.z}, _tileMoveDuration)
+								.easing(TWEEN.Easing.Quadratic.InOut)
+								.start();
+							if (this.onDeactivate) this.onDeactivate();
+						}
+					}
+					this._act = v;
+				}
+			}
+
+			class SimpleTile {
+				constructor(position) {
+					this.tile = new Tile(position, "#DC143C", "#DC143C");
+
+					this.scene = new THREE.Scene();
+					this.renderer = new THREE.WebGLRenderer({
+						alpha: true,
+						antialias: true
+					});
+		      this.renderer.setSize(_tileWidth, _tileHeight);
+					this.renderer.setClearColor(0x000000, 0);
+					this.tile.element.appendChild(this.renderer.domElement);
+					this.camera = new THREE.PerspectiveCamera(
+						50,
+						_tileWidth / _tileHeight,
+						1, 10
+					);
+					this.camera.position.set(0, 0, 5);
+
+					let geo = new THREE.BoxGeometry(1, 1, 1);
+					let mat = new THREE.MeshStandardMaterial({
+						color: 0xffffff,
+						roughness: 1
+					});
+					this.cube = new THREE.Mesh(geo, mat);
+					this.scene.add(this.cube);
+					let light = new THREE.PointLight(0xffffff, 4, 10, 2);
+					light.position.set(0, 0, 3);
+					this.scene.add(light);
+				}
+
+				update(elapsed, delta) {
+					this.cube.rotation.x += 0.005;
+					this.cube.rotation.y += 0.003;
+					this.renderer.render(this.scene, this.camera);
+				}
+			}
+
+			class Tile1 {
+				constructor(position) {
+					this.tile = new Tile(position, _tile1Accent, _tile1Accent);
+					this.tile.onActivate = () => {
+						this.act = true;
+					}
+					this.tile.onDeactivate = () => {
+						this.act = false;
+					}
+					this.progress = 0;
+					this.last = 0;
+
+					this.label = document.createElement("div");
+					this.label.className = "label";
+					this.tile.element.appendChild(this.label);
+
+					this.cursorVisible = false;
+					this.cursorTime = 0;
+					this.cursorPeriod = 1 / _t1CursorHz;
+				}
+
+				update(elapsed, delta) {
+					if (this.act) {
+						this.progress += delta * _t1TextSpeedIn;
+						if (this.progress > 1) this.progress = 1;
+					} else {
+						this.progress -= delta * _t1TextSpeedOut;
+						if (this.progress < 0) this.progress = 0;
+					}
+
+					this.cursorTime += delta;
+					if (this.progress != this.last) {
+						this.cursorTime = 0;
+					}
+					this.cursorVisible = (this.cursorTime % this.cursorPeriod) < (this.cursorPeriod / 2);
+					this.last = this.progress;
+
+					let text = _t1Text.slice(
+						0, Math.floor(this.progress * _t1Text.length)
+					);
+					if (this.cursorVisible) text += "_";
+					this.label.textContent = text;
+				}
+			}
+
+			class Tile2 {
+				constructor(position) {
+					this.tile = new Tile(position, _tile2Accent, "transparent");
+
+					this.scene = new THREE.Scene();
+					this.renderer = new THREE.WebGLRenderer({
+						alpha: true,
+						antialias: true
+					});
+		      this.renderer.setSize(_tileWidth, _tileHeight);
+					this.renderer.setClearColor(0x000000, 0);
+					this.tile.element.appendChild(this.renderer.domElement);
+
+					let n = _tileWidth / _tileHeight;
+					this.camera = new THREE.OrthographicCamera(
+						-_tileWidth / 2, _tileWidth / 2,
+						_tileHeight / 2, -_tileHeight / 2,
+						1, 10
+					);
+					this.camera.position.set(0, 0, 5);
+
+					this.hexes = [];
+					let a = _t2Size;
+					let dx = 1.5 * a;
+					let dy = a * Math.sqrt(3);
+					let yStart = dy / 2;
+					let x = -(_t2Columns - 1) / 2 * dx;
+					for (let c = 0; c < _t2Columns; c++, x += dx) {
+						let y = (c % 2 == 0) ? yStart : 0;
+						y += -(_t2Rows - 1) / 2 * dy;
+						for (let r = 0; r < _t2Rows; r++, y += dy) {
+							this.hexes.push(new Hexagon(
+								this.scene,
+								new THREE.Vector3(x, y, 0)
+							));
+						}
+					}
+
+					this.tile.onActivate = () => {
+						for (let i = 0; i < this.hexes.length; i++) {
+							this.hexes[i].activate();
+						}
+					}
+					this.tile.onDeactivate = () => {
+						for (let i = 0; i < this.hexes.length; i++) {
+							this.hexes[i].deactivate();
+						}
+					}
+				}
+
+				update(elapsed, delta) {
+					this.renderer.render(this.scene, this.camera);
+				}
+			}
+
+			class Hexagon {
+				constructor(scene, position) {
+					let shape = new THREE.Shape();
+					let moveTo = shape.moveTo.bind(shape);
+					let lineTo = shape.lineTo.bind(shape);
+					let r = _t2Size * _t2SizeScale;
+					for (let i = 0, a = 0; i < 6; i++, a+= Math.PI / 3) {
+						let f = (i == 0) ? moveTo : lineTo;
+						f(r * Math.cos(a), r * Math.sin(a));
+					}
+					let geometry = new THREE.ShapeGeometry(shape);
+					let material = new THREE.MeshBasicMaterial({
+						color: _t2HexagonColor,
+						transparent: true,
+						opacity: 0
+					});
+
+					this.object = new THREE.Mesh(geometry, material);
+					this.object.position.set(position.x, position.y, position.z);
+					scene.add(this.object);
+
+					this.tween = null;
+				}
+
+				activate() {
+					if (this.tween) this.tween.stop();
+					this.tween = new TWEEN.Tween(this.object.material)
+						.to(
+							{opacity: between(_t2RandomRange, Math.random())},
+							between(_t2ActDur, Math.random())
+						)
+						.delay(between(_t2ActDelay, Math.random()))
+						.easing(_t2Easing)
+						.onComplete(this._onComplete.bind(this))
+						.start();
+				}
+
+				deactivate() {
+					if (this.tween) this.tween.stop();
+					this.tween = new TWEEN.Tween(this.object.material)
+						.to(
+							{opacity: 0},
+							between(_t2DeactDur, Math.random())
+						)
+						.easing(_t2Easing)
+						.start();
+				}
+
+				_onComplete() {
+					//if (this.tween) this.tween.stop();
+					this.tween = new TWEEN.Tween(this.object.material)
+						.to(
+							{opacity: between(_t2RandomRange, Math.random())},
+							between(_t2Dur, Math.random())
+						)
+						.easing(_t2Easing)
+						.onComplete(this._onComplete.bind(this))
+						.start();
+				}
+			}
+
+			class Tile3 {
+				constructor(position) {
+					this.tile = new Tile(position, _tile3Accent, "transparent");
+
+					this.scene = new THREE.Scene();
+					this.renderer = new THREE.WebGLRenderer({
+						alpha: false,
+						antialias: true
+					});
+		      this.renderer.setSize(_tileWidth, _tileHeight);
+					this.renderer.setClearColor(0x000000, 1);
+					this.tile.element.appendChild(this.renderer.domElement);
+					this.camera = new THREE.PerspectiveCamera(
+						50,
+						_tileWidth / _tileHeight,
+						0.1, 100
+					);
+					this.camera.position.set(0, 0, 0);
+
+					this.space = new Space(this.scene);
+					this.tile.onActivate = () => {
+						this.space.active = true;
+					}
+					this.tile.onDeactivate = () => {
+						this.space.active = false;
+					}
+				}
+
+				update(elapsed, delta) {
+					this.space.update(delta);
+					this.renderer.render(this.scene, this.camera);
+				}
+			}
+
+			class Space {
+				constructor(scene) {
+					this.act = false;
+					this.aliver = new Aliver();
+					this.stars = [];
+					for (let i = 0; i < _starsCount; i++) {
+						this.stars.push(new Star(scene));
+					}
+				}
+
+				update(delta) {
+					this.aliver.update(delta);
+					let aliveCount = (this.act) ? this.aliver.aliveCount : 0;
+
+					//console.log(this.act, aliveCount);
+
+					for (let i = 0; i < _starsCount; i++) {
+						if (aliveCount > 0 && this.stars[i].isDead) {
+							this.stars[i].isDead = false;
+							aliveCount--;
+						}
+						this.stars[i].update(delta);
+					}
+				}
+
+				set active(val) {
+					if (val != this.act) {
+						if (val) {
+							this.aliver.clear();
+						}
+					}
+					this.act = val;
+				}
+			}
+
+			class Star {
+				constructor(scene) {
+					let geo = new THREE.Geometry();
+					geo.vertices.push(
+						new THREE.Vector3(0, 0, 0),
+						new THREE.Vector3(0, 0, _starsLength)
+					);
+					let mat = new THREE.LineBasicMaterial({
+						color: 0xffffff,
+						linewidth: _starsWidth
+					});
+					this.line = new THREE.Line(geo, mat);
+					scene.add(this.line);
+
+					let r = Math.random() * _starsSpawnRadius;
+					let a = Math.random() * Math.PI * 2;
+					this.line.position.set(
+						r * Math.cos(a),
+						r * Math.sin(a),
+						0
+					);
+
+					this.t = 0;
+					this.isDead = true;
+					this.way = between(_starsWayDuration, Math.random());
+				}
+
+				update(delta) {
+					if (this.isDead) return;
+
+					this.t += delta;
+					if (this.t >= this.way) {
+						this.isDead = true;
+						this.t = 0;
+					}
+					this.line.position.z = between(_starsWay, this.t / this.way);
+				}
+
+				get isDead() {
+					return this._isDead;
+				}
+
+				set isDead(val) {
+					if (val != this._isDead) {
+						this._isDead = val;
+						if (val) {
+							this.line.visible = false;
+						} else {
+							this.line.visible = true;
+							this.t = 0;
+						}
+					}
+				}
+			}
+
+			class Aliver {
+				constructor() {
+					this.t = 0;
+					this.one = 1 / _starsPerSecond;
+				}
+
+				update(delta) {
+					this.t += delta;
+				}
+
+				clear() {
+					this.t = 0;
+				}
+
+				get aliveCount() {
+					let count = Math.floor(this.t / this.one);
+					this.t = this.t % this.one;
+					return count;
+				}
+			}
+
+			class Tile4 {
+				constructor(position) {
+					this.tile = new Tile(position, _tile4Accent, _tile4Accent);
+
+					this.scene = new THREE.Scene();
+					this.renderer = new THREE.WebGLRenderer({
+						alpha: true,
+						antialias: true
+					});
+		      this.renderer.setSize(_tileWidth, _tileHeight);
+					this.renderer.setClearColor(0x000000, 0);
+					this.tile.element.appendChild(this.renderer.domElement);
+
+					let n = _tileWidth / _tileHeight;
+					this.camera = new THREE.OrthographicCamera(
+						-_t4CameraScale * n, _t4CameraScale * n,
+						_t4CameraScale, -_t4CameraScale,
+						1, 10
+					);
+					this.camera.position.set(0, 0, 5);
+
+					this.central = createTriangle(_t4TriangleSize, _t4ForeColor);
+					this.radials = [
+						createTriangle(_t4TriangleSize, _t4ForeColor),
+						createTriangle(_t4TriangleSize, _t4ForeColor),
+						createTriangle(_t4TriangleSize, _t4ForeColor)
+					];
+					this.scene.add(this.central);
+					this.scene.add(this.radials[0]);
+					this.scene.add(this.radials[1]);
+					this.scene.add(this.radials[2]);
+
+					this.angle = 0;
+					this.distance = 1;
+					this.range = [_t4TriangleSize, 0];
+					this.range[1] = this.range[0] + _t4Dist;
+
+					this.tile.onActivate = () => {
+						this.active = true;
+					};
+					this.tile.onDeactivate = () => {
+						this.active = false;
+					};
+					this.act = false;
+					this.tween = null;
+				}
+
+				set active(v) {
+					if (v != this.act) {
+						this.act = v;
+
+						if (v) {
+							let phi = Math.PI * 2 / 3;
+							let targetAngle = this.angle + (phi - this.angle % phi);
+							this.tween = new TWEEN.Tween(this)
+								.to({distance: 1, angle: targetAngle}, _t4FromIdleDuration)
+								.easing(_t4Easing)
+								.onComplete(this.onComplete0.bind(this))
+								.start();
+						} else {
+							TWEEN.remove(this.tween);
+						}
+					}
+				}
+
+				onComplete0() {
+					this.tween = new TWEEN.Tween(this) // 1
+						.to({distance: 0}, _t4TweenDuration)
+						.easing(_t4Easing)
+						.onComplete(this.onComplete1.bind(this))
+						.start();
+				}
+				onComplete1() {
+					this.tween = new TWEEN.Tween(this) // 2
+						.to({distance: 1}, _t4TweenDuration)
+						.easing(_t4Easing)
+						.onComplete(this.onComplete2.bind(this))
+						.start();
+				}
+				onComplete2() {
+					this.tween = new TWEEN.Tween(this) // 3
+						.to({angle: this.angle + Math.PI * 2 / 3}, _t4TweenDuration)
+						.easing(_t4Easing)
+						.onComplete(this.onComplete3.bind(this))
+						.start();
+				}
+				onComplete3() {
+					this.tween = new TWEEN.Tween(this)
+						.to({distance: 0}, _t4TweenDuration)
+						.easing(_t4Easing)
+						.onComplete(this.onComplete1.bind(this))
+						.start();
+				}
+
+				update(elapsed, delta) {
+					if (!this.act) {
+						this.angle += delta * Math.PI * 2 * _t4IdleAngleSpeed;
+						this.distance += delta * _t4IdleDistanceSpeed;
+						if (this.distance > 1) this.distance = 1;
+					}
+					//this.angle = elapsed * Math.PI * 2 / 50 * 1;
+
+					//console.log(this.angle, this.distance);
+
+					let rad = between(this.range, this.distance);
+					for (let i = 0, a = this.angle - Math.PI / 6; i < 3; i++, a += Math.PI / 1.5) {
+						this.radials[i].position.set(
+							rad * Math.cos(a),
+							rad * Math.sin(a),
+							0
+						);
+						this.radials[i].rotation.z = this.angle - Math.PI / 6;
+					}
+					this.central.rotation.z = -this.angle + Math.PI / 6;
+
+					this.renderer.render(this.scene, this.camera);
+				}
+			}
+
+			function createTriangle(radius, color) {
+				let shape = new THREE.Shape();
+				let moveTo = shape.moveTo.bind(shape);
+				let lineTo = shape.lineTo.bind(shape);
+				for (let i = 0, a = 0; i < 3; i++, a+= Math.PI / 1.5) {
+					let f = (i == 0) ? moveTo : lineTo;
+					f(radius * Math.cos(a), radius * Math.sin(a));
+				}
+
+				let geometry = new THREE.ShapeGeometry(shape);
+				let material = new THREE.MeshBasicMaterial({color: color});
+				return new THREE.Mesh(geometry, material);
+			}
+
+			function init() {
+				scene = new THREE.Scene();
+	      camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 1000 );
+	      renderer = new THREE.CSS3DRenderer();
+	      renderer.setSize( window.innerWidth, window.innerHeight );
+	      document.body.appendChild( renderer.domElement );
+				document.body.onmousemove = onMouseMove;
+
+				camera.position.set(0, 0, _cameraPositionZ);
+
+				clock = new THREE.Clock();
+
+				tiles = [];
+				tiles.push(
+					new Tile1(new THREE.Vector3(
+						-_tileWidth / 2 - _tileGap / 2,
+						_tileHeight / 2 + _tileGap / 2,
+						0
+					)),
+					new Tile2(new THREE.Vector3(
+						_tileWidth / 2 + _tileGap / 2,
+						_tileHeight / 2 + _tileGap / 2,
+						0
+					)),
+					new Tile3(new THREE.Vector3(
+						-_tileWidth / 2 - _tileGap / 2,
+						-_tileHeight / 2 - _tileGap / 2,
+						0
+					)),
+					new Tile4(new THREE.Vector3(
+						_tileWidth / 2 + _tileGap / 2,
+						-_tileHeight / 2 - _tileGap / 2,
+						0
+					))
+				);
+			}
+
+      function animate() {
+      	requestAnimationFrame( animate );
+
+				TWEEN.update();
+
+				let delta = clock.getDelta();
+				delta = 0.016;
+				let elapsed = clock.getElapsedTime();
+				for (let i = 0; i < tiles.length; i++) {
+					tiles[i].update(elapsed, delta);
+				}
+
+
+
+      	renderer.render( scene, camera );
+      }
+
+			function onMouseMove(event) {
+				let halfWidth = window.innerWidth / 2;
+				let halfHeight = window.innerHeight / 2;
+
+				let vector = new THREE.Vector2(
+					(event.pageX - halfWidth) / halfWidth,
+					-(event.pageY - halfHeight) / halfHeight
+				)
+
+				camera.position.set(
+					vector.x * _cameraMove,
+					vector.y * _cameraMove,
+					_cameraPositionZ
+				);
+				camera.lookAt(0, 0, 0);
+			}
+
+			function between(pair, n) {
+        return n * (pair[1] - pair[0]) + pair[0];
+      }
+
+			function fromHex(hex) {
+				return [
+					hex >> 16,
+					(hex & 0x00ff00) >> 8,
+					hex & 0xff
+				];
+			}
+
+			function toHex(r, g, b) {
+				return Math.floor(r) << 16 + Math.floor(g) << 8 + Math.floor(b);
+			}
+
+			let scene, renderer, camera, clock;
+			let tiles;
+
+			init();
+			animate();
+
+
+		</script>
+	</body>
+</html>

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset=utf-8>
+		<title>InterActive II</title>
+		<style>
+			body { margin: 0; background: black; overflow: hidden;}
+			canvas {width: 100vw; height: 100vh;}
+		</style>
+	</head>
+	<body>
+		<script src="three.js"></script>
+		<script src="tween.min.js"></script>
+		<script>
+			const _cameraPositionZ = 25;
+			const _cameraMove = 10;
+
+			const _r = 0.4;
+			const _R = 0.5;
+			const _verticesCountRange = [5, 7];
+			const _levelsCount = 6;
+			const _deltaZ = -1.5;
+			const _zSpace = 0.5;
+			const _deltaDelay = 100;
+			const _duration = 700;
+			const _steps = 4;
+			const _colors = [
+				0xff00ff,
+				0x00ffff,
+				0xffff00,
+				0x1e90ff,
+				0xff4500,
+				0x00ff7f,
+				0xff0000
+			];
+
+			function init() {
+				scene = new THREE.Scene();
+	      camera = new THREE.PerspectiveCamera(
+					50,
+					window.innerWidth / window.innerHeight,
+					0.1, 1000
+				);
+				camera.position.set(0, 0, _cameraPositionZ);
+	      renderer = new THREE.WebGLRenderer({
+					antialias: true
+				});
+	      renderer.setSize(window.innerWidth, window.innerHeight);
+	      document.body.appendChild(renderer.domElement);
+				document.body.onmousemove = onMouseMove;
+				document.body.onmousedown = onMouseDown;
+
+				clock = new THREE.Clock();
+				elapsedTime = 0;
+
+				let grid = new THREE.GridHelper(10, 10, 0x2e8b57, 0x3cb371);
+				grid.rotation.x = Math.PI / 2;
+				grid.position.z = 0;
+				scene.add(grid);
+				let axes = new THREE.AxesHelper(15);
+				scene.add(axes);
+
+				let planeGeometry = new THREE.PlaneGeometry(50, 50);
+				let planeMaterial = new THREE.MeshBasicMaterial({color: 0xffffff});
+				zeroPlane = new THREE.Mesh(planeGeometry, planeMaterial);
+				raycaster = new THREE.Raycaster();
+			}
+
+      function animate() {
+      	requestAnimationFrame( animate );
+
+				let delta = clock.getDelta();
+				elapsedTime += delta;
+
+				TWEEN.update();
+      	renderer.render( scene, camera );
+      }
+
+			function onMouseMove(event) {
+				let vector = new THREE.Vector2(
+					event.pageX / window.innerWidth * 2 - 1,
+					-(event.pageY / window.innerHeight * 2 - 1)
+				)
+
+				camera.position.set(
+					vector.x * _cameraMove,
+					vector.y * _cameraMove,
+					_cameraPositionZ
+				);
+				camera.lookAt(0, 0, 0);
+			}
+
+			function onMouseDown(event) {
+				let vector = new THREE.Vector2(
+					event.pageX / window.innerWidth * 2 - 1,
+					-(event.pageY / window.innerHeight * 2 - 1)
+				);
+				raycaster.setFromCamera(vector, camera);
+				let intersection = raycaster.intersectObject(zeroPlane);
+
+				startMiracle(intersection[0].point);
+			}
+
+			function startMiracle(origin) {
+				let objects = createObjects();
+				let angle = Math.PI * 2 * Math.random();
+
+				for (let i = 0; i < objects.length; i++) {
+					objects[i].position.set(origin.x, origin.y, -i * _zSpace);
+					objects[i].rotation.z = angle;
+					objects[i].material.opacity = 0;
+					scene.add(objects[i]);
+
+					new TWEEN.Tween(objects[i].position)
+						.to({z: objects[i].position.z + _deltaZ}, _duration)
+						.easing((v) => {
+							return Math.floor(v * _steps) / _steps
+						})
+						.delay(i * _deltaDelay)
+						.start();
+
+					let tw = new TWEEN.Tween(objects[i].material)
+						.to({opacity: 1}, _duration)
+						.easing((v) => {
+							return Math.sin(Math.PI * v);
+						})
+						.delay(i * _deltaDelay)
+						.start();
+					if (i == objects.length - 1) {
+						tw.onComplete(() => {
+							for (let i = 0; i < objects.length; i++) {
+								scene.remove(objects[i]);
+							}
+						});
+					}
+				}
+			}
+
+			function createObjects() {
+				let vertsCount = Math.round(between(
+					_verticesCountRange, Math.random()
+				));
+				let da = Math.PI * 2 / vertsCount;
+				let objects = [];
+				let color = _colors[
+					Math.floor(_colors.length * Math.random())
+				];
+
+				let a = 0, r = _r;
+				for (let l = 0; l < _levelsCount; l++) {
+					let shapes = [];
+					r = l * _R + _r;
+
+					if (l == 0) {
+
+						let shape = new THREE.Shape();
+						for (let v = 0, a = 0; v < vertsCount; v++, a += da) {
+							if (v == 0)
+								shape.moveTo(r, 0);
+							else
+								shape.lineTo(r * Math.cos(a), r * Math.sin(a));
+						}
+						shapes.push(shape);
+
+					} else {
+
+						let r2 = r, r1 = r - _r;
+						for (let v = 0, a = 0; v < vertsCount; v++, a += da) {
+							let shape = new THREE.Shape();
+							shape.moveTo(r1 * Math.cos(a), r1 * Math.sin(a));
+							shape.lineTo(r2 * Math.cos(a), r2 * Math.sin(a));
+							shape.lineTo(r2 * Math.cos(a + da), r2 * Math.sin(a + da));
+							shape.lineTo(r1 * Math.cos(a + da), r1 * Math.sin(a + da));
+							shapes.push(shape);
+						}
+
+					}
+
+					let geometry = new THREE.ShapeGeometry(shapes);
+					let material = new THREE.MeshBasicMaterial({
+						color: color,
+						transparent: true
+					});
+					objects.push(new THREE.Mesh(geometry, material));
+				}
+
+				return objects;
+			}
+
+			function between(pair, n) {
+        return n * (pair[1] - pair[0]) + pair[0];
+      }
+
+			function fromHex(hex) {
+				return [
+					hex >> 16,
+					(hex & 0x00ff00) >> 8,
+					hex & 0xff
+				];
+			}
+
+			function toHex(r, g, b) {
+				return Math.floor(r) << 16 + Math.floor(g) << 8 + Math.floor(b);
+			}
+
+			let scene, renderer, camera, clock, raycaster, zeroPlane;
+			let elapsedTime;
+
+			init();
+			animate();
+
+
+		</script>
+	</body>
+</html>
