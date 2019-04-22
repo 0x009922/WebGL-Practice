@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset=utf-8>
+		<title>CubesVR</title>
+		<style>
+			body { margin: 0; overflow: hidden;}
+			canvas { width: 100vw; height: 100vh }
+		</style>
+	</head>
+	<body>
+		<script src="../js/three.js"></script>
+		<script src="../js/WebVR.js"></script>
+		<script>
+			const _volume = 5;
+			const _cube = 0.45;
+			const _cubesCount = 20;
+			const _moveDistance = 1;
+			const _hz = [0.5, 1.5];
+			const _camSpeed = 0.03;
+			const _colorChangeSpeed = 1 / 100;
+
+			class Cube {
+				constructor(x, y, z, dx, dy, dz) {
+					let geometry = new THREE.BoxGeometry(_cube, _cube, _cube)
+					let material = new THREE.MeshStandardMaterial({
+						color: 0xffffff,
+						roughness: 1,
+						metalness: 0.3
+					});
+					//material.wireframe = true;
+					material.wireframeLinewidth = 2;
+					this.cube = new THREE.Mesh(geometry, material);
+					scene.add(this.cube);
+
+					this.pos = new THREE.Vector3(x, y, z);
+					this.cube.position.set(x, y, z);
+
+					this.dir = new THREE.Vector3(dx, dy, dz);
+
+					this.num = Math.random();
+					this.amp = Math.random() * _moveDistance / 2;
+					this.hz = between(_hz, Math.random());
+				}
+
+				update(elapsed) {
+					let n = this.amp + this.amp * Math.sin(
+						(elapsed * this.hz + this.num) * Math.PI * 2
+					);
+					this.cube.position.set(this.pos.x, this.pos.y, this.pos.z);
+					let dir = new THREE.Vector3(this.dir.x, this.dir.y, this.dir.z)
+						.multiplyScalar(n);
+					this.cube.position.add(dir);
+				}
+			}
+
+			var container, scene, camera, renderer, clock, light;
+			var cubes = [], speed;
+
+			init();
+			animate();
+
+			function init() {
+				container = document.createElement( 'div' );
+				document.body.appendChild( container );
+	      scene = new THREE.Scene();
+
+
+	      renderer = new THREE.WebGLRenderer();
+	      renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.vr.enabled = true;
+	      document.body.appendChild( renderer.domElement );
+				document.body.appendChild( WEBVR.createButton( renderer ) );
+
+				clock = new THREE.Clock(true);
+
+				camera = new THREE.PerspectiveCamera( 100, window.innerWidth / window.innerHeight, 0.1, 100 );
+	      camera.position.set(0, 0, 0);
+
+				light = new THREE.PointLight(0xffffff, 15, 15, 5);
+				light.position.set(0, 0, 0);
+				scene.add(light);
+
+				let verts = [];
+				verts.push(new THREE.Vector3(0, 0, 1));
+				let cell = _volume * 2 / _cubesCount;
+				for (let r = 0; r < _cubesCount; r++) {
+					for (let c = 0; c < _cubesCount; c++) {
+						verts.push(new THREE.Vector3(
+							-_volume + cell * (c + 0.5),
+							-_volume + cell * (r + 0.5),
+							-_volume
+						));
+					}
+				}
+				create(verts[0]);
+				rotate(new THREE.Vector3(0, 1, 0), Math.PI / 2);
+				create(verts[0]);
+				rotate(new THREE.Vector3(0, 1, 0), Math.PI / 2);
+				create(verts[0]);
+				rotate(new THREE.Vector3(0, 1, 0), Math.PI / 2);
+				create(verts[0]);
+
+				rotate(new THREE.Vector3(0, 0, 1), Math.PI / 2);
+				create(verts[0]);
+				rotate(new THREE.Vector3(0, 0, 1), Math.PI);
+				create(verts[0]);
+
+
+				function rotate(axis, angle) {
+					let quat = new THREE.Quaternion();
+					quat.setFromAxisAngle(axis, angle);
+					for (let i = 0; i < verts.length; i++) {
+						verts[i].applyQuaternion(quat);
+					}
+				}
+				function create(dir) {
+					for (let i = 1; i < verts.length; i++) {
+						cubes.push(new Cube(
+							verts[i].x - dir.x * _cube / 2,
+							verts[i].y - dir.y * _cube / 2,
+							verts[i].z - dir.z * _cube / 2,
+							dir.x, dir.y, dir.z
+						));
+					}
+				}
+
+				speed = new THREE.Vector3(
+					(Math.random() * 2 - 1) * _camSpeed,
+					(Math.random() * 2 - 1) * _camSpeed,
+					(Math.random() * 2 - 1) * _camSpeed
+				);
+			}
+
+			function animate() {
+				renderer.setAnimationLoop(render);
+			}
+
+			function render() {
+				let elapsed = clock.getElapsedTime();
+
+				for (let i = 0; i < cubes.length; i++) {
+					cubes[i].update(elapsed);
+				}
+
+				let state = elapsed * Math.PI * 2;
+				camera.rotation.y = state * speed.x;
+				camera.rotation.x = state * speed.y;
+				camera.rotation.z = state * speed.z;
+				camera.fov = 75 + 50 * Math.sin(state * 0.05);
+				camera.updateProjectionMatrix();
+
+				light.color.setHSL((elapsed * _colorChangeSpeed) % 1, 1, 0.5);
+
+      	renderer.render( scene, camera );
+			}
+
+			function between(pair, n) {
+        return n * (pair[1] - pair[0]) + pair[0];
+      }
+		</script>
+	</body>
+</html>
