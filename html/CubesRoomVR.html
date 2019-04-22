@@ -151,7 +151,7 @@
 				camera.fov = 75 + 50 * Math.sin(state * 0.05);
 				camera.updateProjectionMatrix();
 
-				light.color.setHSL((elapsed * _colorChangeSpeed) % 1, 1, 0.5);
+				light.color.setHSL((elapsed * _colorChangeSpeed) % 1, 1, 0.2);
 
       	renderer.render( scene, camera );
 			}
