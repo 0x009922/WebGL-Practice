@@ -4,26 +4,41 @@
 		<meta charset=utf-8>
 		<title>index</title>
 		<style>
+			* {
+				box-sizing: border-box;
+				user-select: none;
+				cursor: default;
+			}
 			@font-face {
 				font-family: "Monofur";
 				src: url("fonts/Monofur.ttf");
 			}
-			body { margin: 0; background: black; }
+			body {
+				margin: 0;
+				background: black;
+				font-family: Monofur, Menlo, Consolas, monospace;
+			}
 			.tile {
 				border: 2px solid white;
 				background: transparent;
-				width: 300px;
-				height: 200px;
 				transition: background 0.3s ease-in-out,
 										opacity 0.3s ease-in-out,
 										color 0.3s ease-in-out;
-				cursor: default;
+				cursor: pointer;
 				color: white;
+			}
+			.tile::selection {
+				color: transparent;
 			}
 			.tile .label {
 				font-size: 40px;
 				margin: 20px;
-				font-family: Monofur, Menlo, Consolas, monospace;
+				cursor: inherit;
+			}
+
+			.header-label {
+				font-size: 150px;
+				color: white;
 			}
 		</style>
 	</head>
@@ -33,16 +48,20 @@
 		<script src="js/CSS3DRenderer.js"></script>
 		<script>
 			const _tileWidth = 300;
-			const _tileHeight = 200;
-			const _tileMove = 100;
-			const _tileMoveDuration = 200;
+			const _tileHeight = 150;
+			const _tileMove = 50;
+			const _tileMoveDuration = 300;
 			const _tileInactiveOpacity = 0.7;
-			const _cameraMove = 100;
+			const _cameraMove = -200;
+			const _lookAtMove = 00;
 			const _cameraPositionZ = 1000;
 
 			const _columns = 4;
 			const _rows = 3;
-			const _gap = 50;
+			const _gap = 30;
+			const _headerHeight = 170;
+			const _gridWidth = _columns * _tileWidth + (_columns - 1) * _gap;
+			const _gridHeight = _rows * _tileHeight + (_rows - 1) * _gap;
 
 			const data = [
 				{
@@ -92,13 +111,19 @@
 					tile.className = "tile";
 					tile.style.background = "transparent";
 					tile.style.borderColor = accent;
-					tile.onclick = () => {window.location = data.link};
+					tile.style.width = _tileWidth + "px";
+					tile.style.height = _tileHeight + "px";
+
 					let label = document.createElement("div");
 					label.className = "label";
 					label.textContent = data.label;
 					tile.appendChild(label);
+
 					tile.onmouseover = this._mouseOver.bind(this);
 					tile.onmouseout = this._mouseOut.bind(this);
+					tile.onmousedown = () => {
+						window.location = data.link;
+					};
 
 					this.object = new THREE.CSS3DObject(tile);
 					this.object.position.set(
@@ -135,13 +160,7 @@
 							this.element.style.opacity = 1;
 							this.element.style.color = "black";
 
-							if (this.positionTween) {
-								this.positionTween.stop();
-							}
-							this.positionTween = new TWEEN.Tween(this.object.position)
-								.to({z: this.position.z + _tileMove}, _tileMoveDuration)
-								.easing(TWEEN.Easing.Quadratic.InOut)
-								.start();
+							this._setMoveTween(1, _tileMoveDuration);
 
 						} else {
 
@@ -149,33 +168,34 @@
 							this.element.style.opacity = _tileInactiveOpacity;
 							this.element.style.color = "white";
 
-							if (this.positionTween) {
-								this.positionTween.stop();
-							}
-							this.positionTween = new TWEEN.Tween(this.object.position)
-								.to({z: this.position.z}, _tileMoveDuration)
-								.easing(TWEEN.Easing.Quadratic.InOut)
-								.start();
+							this._setMoveTween(0, _tileMoveDuration);
 
 						}
 					}
 					this._act = v;
 				}
+
+				_setMoveTween(state, duration) {
+					if (this.positionTween) this.positionTween.stop();
+					this.positionTween = new TWEEN.Tween(this.object.position)
+						.to({z: this.position.z + _tileMove * state}, duration)
+						.easing(TWEEN.Easing.Quadratic.InOut)
+						.start();
+				}
 			}
 
 			function init() {
 				scene = new THREE.Scene();
-	      camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 1000 );
-	      renderer = new THREE.CSS3DRenderer({
-
+				renderer = new THREE.CSS3DRenderer({
+					antialias: true
 				});
 	      renderer.setSize( window.innerWidth, window.innerHeight );
 	      document.body.appendChild( renderer.domElement );
+
+	      camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 1000 );
+	      camera.position.set(0, 0, _cameraPositionZ);
+
 				document.body.onmousemove = onMouseMove;
-
-				camera.position.set(0, 0, _cameraPositionZ);
-
-				clock = new THREE.Clock();
 
 				tiles = [];
 				for (let i = 0; i < data.length; i++) {
@@ -185,6 +205,15 @@
 						data[i]
 					));
 				}
+
+				let header = document.createElement("div");
+				header.className = "header-label";
+				header.textContent = "Welcome! :)"
+				header.style.width = _gridWidth + "px";
+				header.style.height = _headerHeight + "px";
+				let header3d = new THREE.CSS3DObject(header);
+				header3d.position.set(0, (_gridHeight) / 2, 0);
+				scene.add(header3d);
 			}
 
       function animate() {
@@ -196,22 +225,21 @@
       }
 
 			function onMouseMove(event) {
-				let halfWidth = window.innerWidth / 2;
-				let halfHeight = window.innerHeight / 2;
+				let wh = window.innerWidth / window.innerHeight;
 
 				let vector = new THREE.Vector2(
-					(event.pageX - halfWidth) / halfWidth,
-					-(event.pageY - halfHeight) / halfHeight
-				)
+					(event.pageX / window.innerWidth * 2 - 1) * wh,
+					-(event.pageY / window.innerHeight * 2 - 1)
+				);
 
-				/*camera.position.set(
+				camera.position.set(
 					vector.x * _cameraMove,
 					vector.y * _cameraMove,
 					_cameraPositionZ
-				);*/
+				);
 				camera.lookAt(
-					vector.x * _cameraMove,
-					vector.y * _cameraMove,
+					vector.x * _lookAtMove,
+					vector.y * _lookAtMove,
 					0
 				);
 			}
@@ -219,35 +247,17 @@
 			function gridPosition(index) {
 				let c = index % _columns, r = Math.floor(index / _columns);
 				return new THREE.Vector3(
-					c * (_tileWidth + _gap) - ((_columns - 1) * _tileWidth / 2 + (_columns - 2) * _gap),
-					-(r * (_tileHeight + _gap) - ((_rows - 1) * _tileHeight / 2 + (_rows - 2) * _gap)),
+					c * (_tileWidth + _gap) + _tileWidth / 2 - _gridWidth / 2,
+					-(r * (_tileHeight + _gap) + _tileHeight / 2 - (_gridHeight - _headerHeight) / 2),
 					0
 				);
 			}
 
-			function between(pair, n) {
-        return n * (pair[1] - pair[0]) + pair[0];
-      }
-
-			function fromHex(hex) {
-				return [
-					hex >> 16,
-					(hex & 0x00ff00) >> 8,
-					hex & 0xff
-				];
-			}
-
-			function toHex(r, g, b) {
-				return Math.floor(r) << 16 + Math.floor(g) << 8 + Math.floor(b);
-			}
-
-			let scene, renderer, camera, clock;
+			let scene, renderer, camera;
 			let tiles, grid;
 
 			init();
 			animate();
-
-
 		</script>
 	</body>
 </html>
