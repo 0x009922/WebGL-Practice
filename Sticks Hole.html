@@ -13,7 +13,7 @@
 		<script>
 			const _length = 2;
 			const _rad = 0.02;
-			const _count = 100;
+			const _count = 50;
 			const _spawnCubeWidth = 4;
 			const _speed = 1;
 			const _start = -10;
@@ -98,7 +98,9 @@
 				document.body.appendChild( container );
 	      scene = new THREE.Scene();
 
-	      renderer = new THREE.WebGLRenderer();
+	      renderer = new THREE.WebGLRenderer({
+					antialias: true
+				});
 	      renderer.setSize( window.innerWidth, window.innerHeight );
 	      document.body.appendChild( renderer.domElement );
 				clock = new THREE.Clock(true);
