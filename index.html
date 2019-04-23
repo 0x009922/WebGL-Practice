@@ -34,11 +34,25 @@
 				font-size: 40px;
 				margin: 20px;
 				cursor: inherit;
+				text-shadow: 2px 2px 0 black;
 			}
 
 			.header-label {
 				font-size: 150px;
 				color: white;
+				transition: all 0.3s ease-in-out;
+			}
+			.header-label:hover {
+				text-shadow: 0 0 30px white;
+			}
+
+			@keyframes slam {
+				from {
+					transform: scaleX(0.5);
+				},
+				to {
+					transform: scaleX(0.9);
+				}
 			}
 		</style>
 	</head>
@@ -52,9 +66,11 @@
 			const _tileMove = 50;
 			const _tileMoveDuration = 300;
 			const _tileInactiveOpacity = 0.7;
-			const _cameraMove = -200;
-			const _lookAtMove = 00;
+			const _tilePushDuration = 300;
+			const _cameraMove = 400;
+			const _lookAtMove = 200;
 			const _cameraPositionZ = 1000;
+			const _cameraMoveSpeed = 0.05;
 
 			const _columns = 4;
 			const _rows = 3;
@@ -126,7 +142,12 @@
 					tile.onmouseover = this._mouseOver.bind(this);
 					tile.onmouseout = this._mouseOut.bind(this);
 					tile.onmousedown = () => {
-						window.location = data.link;
+						this.pushed = true;
+						this._setMoveTween(3, _tilePushDuration);
+						this.element.style.opacity = 0;
+						this.positionTween.onComplete(() => {
+							window.location = data.link;
+						});
 					};
 
 					this.object = new THREE.CSS3DObject(tile);
@@ -142,13 +163,16 @@
 					this.position = position;
 					this.accent = accent;
 					this.active = false;
+					this.pushed = false;
 				}
 
 				_mouseOver() {
+					if (this.pushed) return;
 					this.active = true;
 				}
 
 				_mouseOut() {
+					if (this.pushed) return;
 					this.active = false;
 				}
 
@@ -162,7 +186,7 @@
 
 							this.element.style.background = this.accent;
 							this.element.style.opacity = 1;
-							this.element.style.color = "black";
+							//this.element.style.color = "black";
 
 							this._setMoveTween(1, _tileMoveDuration);
 
@@ -198,8 +222,12 @@
 
 	      camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 1000 );
 	      camera.position.set(0, 0, _cameraPositionZ);
+				camTarget = new THREE.Vector3(0, 0, _cameraPositionZ);
+				lookTarget = new THREE.Vector3(0, 0, 0);
+				currentLook = new THREE.Vector3(0, 0, 0);
 
 				document.body.onmousemove = onMouseMove;
+				document.body.onmouseleave = onMouseLeave;
 
 				tiles = [];
 				for (let i = 0; i < data.length; i++) {
@@ -225,6 +253,12 @@
 
 				TWEEN.update();
 
+				camera.position.x += (camTarget.x - camera.position.x) * _cameraMoveSpeed;
+				camera.position.y += (camTarget.y - camera.position.y) * _cameraMoveSpeed;
+				currentLook.x += (lookTarget.x - currentLook.x) * _cameraMoveSpeed;
+				currentLook.y += (lookTarget.y - currentLook.y) * _cameraMoveSpeed;
+				camera.lookAt(currentLook);
+
       	renderer.render( scene, camera );
       }
 
@@ -236,16 +270,21 @@
 					-(event.pageY / window.innerHeight * 2 - 1)
 				);
 
-				camera.position.set(
+				camTarget.set(
 					vector.x * _cameraMove,
 					vector.y * _cameraMove,
 					_cameraPositionZ
 				);
-				camera.lookAt(
+				lookTarget.set(
 					vector.x * _lookAtMove,
 					vector.y * _lookAtMove,
 					0
 				);
+			}
+
+			function onMouseLeave(event) {
+				camTarget.set(0, 0, _cameraPositionZ);
+				lookTarget.set(0, 0, 0);
 			}
 
 			function gridPosition(index) {
@@ -259,6 +298,7 @@
 
 			let scene, renderer, camera;
 			let tiles, grid;
+			let camTarget, lookTarget, currentLook;
 
 			init();
 			animate();
