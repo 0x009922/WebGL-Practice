@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset=utf-8>
+		<title>Tunnel</title>
+		<style>
+			body { margin: 0; overflow: hidden; }
+			canvas { width: 100vw; height: 100vh; }
+		</style>
+	</head>
+	<body>
+		<script src="../js/three.js"></script>
+		<script>
+      const _camZ = 10;
+			const _camMove = 0.05;
+
+			function init() {
+				renderer = new THREE.WebGLRenderer();
+	      renderer.setSize(window.innerWidth, window.innerHeight);
+	      document.body.appendChild(renderer.domElement);
+				scene = new THREE.Scene();
+	      camera = new THREE.PerspectiveCamera(
+					75,
+					window.innerWidth / window.innerHeight,
+					0.1,
+					1000
+				);
+				clock = new THREE.Clock();
+				elapsed = 0;
+
+
+	      var geometry = new THREE.BoxGeometry( 1, 1, 1 );
+	      var material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
+				material.wireframe = true;
+	      var cube = new THREE.Mesh( geometry, material );
+	      scene.add(cube);
+				let grid = new THREE.GridHelper(10, 10);
+				grid.rotation.x = Math.PI / 2;
+				scene.add(grid);
+
+	      camera.position.z = 5;
+			}
+
+      function animate() {
+      	requestAnimationFrame(animate);
+
+
+
+      	renderer.render(scene, camera);
+      }
+
+			function onMouseMove(event) {
+
+			}
+			function onMouseLeave(event) {
+
+			}
+			function updateCamera(delta) {
+
+			}
+
+			var scene, camera, renderer, clock;
+			var elapsed;
+			var target;
+
+			init();
+      animate();
+		</script>
+	</body>
+</html>
