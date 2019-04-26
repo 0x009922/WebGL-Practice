@@ -4,14 +4,159 @@
 		<meta charset=utf-8>
 		<title>Tunnel</title>
 		<style>
-			body { margin: 0; overflow: hidden; }
-			canvas { width: 100vw; height: 100vh; }
-			.meetingContainer {
+			@font-face {
+				font-family: "Monofur";
+				src: url("fonts/Monofur.ttf");
+			}
+			@keyframes fadein {
+				from {opacity: 0}
+				to {opacity: 1}
+			}
+			@keyframes fadeout {
+				from {opacity: 1}
+				to {opacity: 0}
+			}
+			* {
+				box-sizing: border-box;
+				color: #00ff7f;
+				font-family: Monofur, monospace;
+				font-weight:  300;
+			}
+			body { margin: 0; overflow: hidden; background: black; }
+			canvas {
+				width: 100vw;
+				height: 100vh;
+				z-index: 10;
+				opacity: 0;
+				animation: fadein 3s ease-in;
+				animation-fill-mode: forwards;
+			}
+			#meeting-container {
+				position: absolute;
+				top: 0;
+				left: 0;
+				background: black;
+				width: 100vw;
+				height: 100vh;
+				display: flex;
+				opacity: 1;
+				justify-content: center;
+				animation-fill-mode: forwards;
+				animation-delay: 1s;
+			}
+			#cont2 {
+				height: 100vh;
+				background: #00ff7f10;
+				animation: fadein 0.3s ease-in-out;
+				opacity: 0;
+				animation-fill-mode: forwards;
+				animation-delay: 0.1s;
+			}
 
+			.box {
+				background: transparent;
+				width: 750px;
+				margin: 55px 40px;
+				font-size: 1.8em;
+			}
+			.box h1 {
+				font-size: 2em;
+			}
+			.box block {
+				display: block;
+				margin-bottom: 20px;
+			}
+			.box warning {
+				color: #B22222;
+			}
+			.box key {
+				background: #00ff7f;
+				color: black;
+				padding: 10px 6px 0px 6px;
+				border-radius: 3px;
+			}
+			.box high {
+				background: #00ff7f30;
+				padding: 8px 6px 0px 6px;
+			}
+
+			button {
+				border: 2px solid #00ff7f;
+        border-radius: 2px;
+        background: transparent;
+        color: #00ff7f;
+        padding: 15px 15px 0 15px;
+        width: 250px;
+				font-size: 1.5em;
+				margin-bottom: 20px;
+				transition: all 0.15s ease-in-out;
+      }
+      button:focus {
+        outline: 0;
+      }
+			button:hover {
+				background: #00ff7f20;
+			}
+			button:active {
+				background: #00ff7f40;
+			}
+			button.red {
+				border: 2px solid #B22222;
+				color: #b22222;
+			}
+			button.red:hover {
+				background: #b2222220;
+			}
+			button.red:active {
+				background: #b2222240;
+			}
+
+			#aa-cont {
+				display: grid;
+				grid-template-columns: 1fr 1fr 1fr;
+				margin-bottom: 30px;
+			}
+			#aa-header {
+				grid-column: 1;
+				display: flex;
+				align-items: center;
+				font-size: 1.5em;
+			}
+			#aa-switcher {
+				grid-column: 3;
 			}
 		</style>
 	</head>
 	<body>
+		<div id="meeting-container">
+			<div id="cont2">
+				<div class="box">
+					<h1>Привет</h1>
+					<block>
+						Для начала разверни страницу на весь экран, нажми <key>F11</key></br>
+						Так будет лучше
+					</block>
+					<block>Когда всё начнётся, ты сможешь <high>воспользоваться мышью</high> для разнообразия</block>
+					<block>
+						Перед стартом хочу спросить тебя, использовать ли мне <high>сглаживание</high>?</br>
+						<warning>Это ударит по производительности</warning>, но если у тебя нету
+						проблем с железом, то включай
+					</block>
+
+					<div id="aa-cont">
+						<div id="aa-header">
+							AntiAliasing
+						</div>
+						<button class="red" id="aa-switcher">Выкл</button>
+					</div>
+
+					<block>Не умею говорить заключительное слово, так что просто запускай уже</block>
+					<button id="go">Go</button>
+				</div>
+			</div>
+
+		</div>
+
 		<script src="../js/three.js"></script>
 		<script>
 			const _camLookPos = -7;
@@ -40,7 +185,7 @@
 			const _tunnelColor = 0;
 			const _lightColor = 0x00ff7f;
 			const _fogColor = 0x00ff7f;
-			const _antialias = false;
+			var _antialias = false;
 
 			class Tunnel {
 				constructor() {
@@ -363,9 +508,32 @@
 			var tunnel, light;
 
 			var currentRadius = 1.5;
+			let switcher = document.getElementById("aa-switcher");
 
-			init();
-      animate();
+			switcher.onclick = () => {
+				switch(switcher.className) {
+					case "":
+					switcher.className = "red";
+					switcher.textContent = "Выкл";
+					_antialias = false;
+					break;
+					case "red":
+					switcher.className = "";
+					switcher.textContent = "Вкл";
+					_antialias = true;
+					break;
+				}
+			}
+			document.getElementById("go").onclick = () => {
+				let el2 = document.getElementById("meeting-container");
+				el2.style.animation = "fadeout 0.5s ease-out";
+				el2.style.animationFillMode = "forwards";
+				el2.style.animationDelay = "0s";
+				setTimeout(() => {
+					init();
+					animate();
+				}, 500);
+			}
 		</script>
 	</body>
 </html>
