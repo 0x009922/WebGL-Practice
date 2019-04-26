@@ -6,6 +6,9 @@
 		<style>
 			body { margin: 0; overflow: hidden; }
 			canvas { width: 100vw; height: 100vh; }
+			.meetingContainer {
+
+			}
 		</style>
 	</head>
 	<body>
@@ -16,19 +19,23 @@
 			const _camPos = -2;
 			const _camPosFactor = -1;
 			const _camTargetSpeed = 2;
-			const _camRelaxationSpeed = 0.5;
-			const _normalFOV = 55;
+			const _camRelaxationSpeed = 1;
+			const _normalFOV = 35;
 			const _minFOV = 10;
-			const _maxFOV = 130;
+			const _maxFOV = 70;
 			const _fovTargetSpeed = 2;
-			const _fovRelaxationSpeed = 0.5;
+			const _fovRelaxationSpeed = 1;
 
-			const _ringSegments = 30;
+			const _ringSegments = 60;
 			const _randomNumR = 0.3;
-			const _randomNumZ = 0.5;
+			const _randomNumZ = 0.3;
 			const _sectionLength = [0.5, 2];
-			const _tunnelLength = 35;
+			const _tunnelLength = 65;
 			const _speed = 5;
+			const _rotationSpeed = 0.2;
+
+			const _secSize = _ringSegments * 6 * 3;
+			const _bufferSize = _secSize * 1000;
 
 			const _tunnelColor = 0;
 			const _lightColor = 0x00ff7f;
@@ -37,146 +44,137 @@
 
 			class Tunnel {
 				constructor() {
-					let rings = [generateRing(1)];
-					this.sections = [];
+					this.buffer = new BufferMaster();
+
+					this.rings = [generateRing(1)];
+					this.secs = [];
 					let i = 0;
 					let totalLength = 0;
+					let z = 0;
 					while (totalLength < _tunnelLength) {
-						rings.push(generateRing(i % 2));
-
+						this.rings.push(generateRing(i % 2));
 						let len = between(_sectionLength, Math.random());
-						this.sections.push(new Section(
-							rings[i],
-							rings[i + 1],
+						this.secs.push({length: len, start: z});
+						this.buffer.push(generateSectionVerts(
+							this.rings[i],
+							this.rings[i + 1],
 							len
-						));
+						), z - len / 2);
 
+						z -= len;
 						i++;
 						totalLength += len;
 					}
 
-					this.x = 0;
-				}
+					let g = new THREE.BoxGeometry(1, 1, 1);
 
-				update(delta) {
-					this.x += _speed * delta;
-
-					let currentLength, z = this.x;
-					for (let i = 0; i < this.sections.length; i++) {
-						this.sections[i].zPos = z;
-						if (i < this.sections.length - 1) {
-							z -= this.sections[i].length / 2 + this.sections[i + 1].length / 2;
-						}
-					}
-					currentLength = -z;
-
-					if (this.sections[0].zPos > this.sections[0].length / 2) {
-						this.sections[0].remove();
-						this.x -= this.sections[0].length / 2 + this.sections[1].length / 2;
-						this.sections.splice(0, 1);
-					}
-
-					let i = this.sections.length - 1;
-					while (currentLength < _tunnelLength) {
-						let nLen = between(_sectionLength, Math.random());
-						this.sections.push(new Section(
-								this.sections[i].ring2,
-								generateRing((this.sections[i].ring2.n + 1) % 2),
-								nLen
-							)
-						);
-						z -= this.sections[i].length / 2 + nLen / 2;
-						this.sections[++i].zPos = z;
-						currentLength += nLen;
-					}
-				}
-			}
-
-			class Section {
-				constructor() {
-					this.meshIn = null;
-					if (arguments[0]) {
-						this.set(arguments[0], arguments[1], arguments[2]);
-					}
-				}
-
-				set(ring1, ring2, length) {
-					if (this.meshIn) {
-						this.remove();
-					}
-
-					this.ring1 = ring1;
-					this.ring2 = ring2;
-					this.length = length;
-
-					let facesTemplate = [
-						[
-							0, 1, 2, 1, 2, 3
-						],
-						[
-							0, 2, 3, 0, 1, 3
-						]
-					];
-
-					let gmy = new THREE.Geometry();
-					for (let i = 0; i < _ringSegments; i++) {
-						gmy.vertices.push
-						(
-
-							new THREE.Vector3(
-								ring1[i].x,
-								ring1[i].y,
-								ring1[i].z + length / 2
-							),
-							new THREE.Vector3(
-								ring1[(i + 1) % _ringSegments].x,
-								ring1[(i + 1) % _ringSegments].y,
-								ring1[(i + 1) % _ringSegments].z + length / 2
-							),
-							new THREE.Vector3(
-								ring2[i].x,
-								ring2[i].y,
-								ring2[i].z - length / 2
-							),
-							new THREE.Vector3(
-								ring2[(i + 1) % _ringSegments].x,
-								ring2[(i + 1) % _ringSegments].y,
-								ring2[(i + 1) % _ringSegments].z - length / 2
-							)
-
-						);
-
-						let j = i*4;
-						let t = facesTemplate[i%2];
-						gmy.faces.push(
-							new THREE.Face3(j + t[0], j + t[1], j + t[2]),
-							new THREE.Face3(j + t[3], j + t[4], j + t[5])
-						);
-					}
-					gmy.computeFaceNormals();
-
-					let mtrlIn = new THREE.MeshPhysicalMaterial({
+					let mtrl = new THREE.MeshPhysicalMaterial({
 						color: _tunnelColor,
 						clearCoat: 0.5,
 						clearCoatRoughness: 1,
 						reflectivity: 0.5,
 						side: THREE.DoubleSide
 					});
+					this.buffer.update();
+					this.mesh = new THREE.Mesh(this.buffer.geometry, mtrl);
 
-					this.meshIn = new THREE.Mesh(gmy, mtrlIn);
-
-					scene.add(this.meshIn);
+					scene.add(this.mesh);
+					scene.add(new THREE.AxesHelper(15, 15, 15));
 				}
 
-				remove() {
-					scene.remove(this.meshIn);
+				update(delta) {
+					this.mesh.position.z += _speed * delta;
+					this.mesh.rotation.z += _rotationSpeed * delta;
+					let currentLength = this.secs.reduce((s, c) => (s + c.length), 0);
+
+					if (this.mesh.position.z > this.secs[0].length) {
+						this.mesh.position.z -= this.secs[0].length;
+						currentLength -= this.secs[0].length;
+						this.buffer.remove(1, this.secs[0].length);
+						for (let i of this.secs) i.start += this.secs[0].length;
+						this.secs.splice(0, 1);
+						this.rings.splice(0, 1);
+					}
+
+					let lastSec = this.secs[this.secs.length - 1];
+					while (this.mesh.position.z - currentLength > -_tunnelLength) {
+						let rcount = this.rings.length;
+						let nLen = between(_sectionLength, Math.random());
+
+						this.rings.push(generateRing( (this.rings[rcount - 1].n + 1) % 2 ));
+						lastSec = {
+							length: nLen,
+							start: lastSec.start - lastSec.length
+						};
+						this.secs.push(lastSec);
+
+						this.buffer.push(
+							generateSectionVerts(
+								this.rings[rcount - 1],
+								this.rings[rcount],
+								nLen
+							),
+							lastSec.start - nLen / 2
+						);
+						currentLength += nLen;
+					}
+
+					this.buffer.update();
+				}
+			}
+
+			class BufferMaster {
+				constructor() {
+					this.geometry = new THREE.BufferGeometry();
+					this.positions = new Float32Array(_bufferSize);
+
+					this.geometry.addAttribute(
+						"position",
+						new THREE.BufferAttribute(this.positions, 3)
+					);
+
+					this.count = 0;
+					this.needUpdate = false;
 				}
 
-				get zPos() {
-					return this.meshIn.position.z;
+				remove(n, remlen) {
+					let positions = this.geometry.getAttribute("position").array;
+
+					this.count -= n;
+					for (let i = 0, d = n * _secSize; i < this.count * _secSize; i++) {
+						positions[i] = positions[i + d];
+						if (i % 3 == 2) {
+							positions[i] += remlen;
+						}
+					}
+
+					this.needUpdate = true;
 				}
-				set zPos (value) {
-					this.meshIn.position.z = value;
+
+				push(verts, z) {
+					let positions = this.geometry.getAttribute("position").array;
+
+					let bi = this.count * _secSize;
+					for (let i = 0; i < verts.length; i++) {
+						for (let j = 0; j < 3; j++) {
+							positions[bi++] = verts[i][j].x;
+							positions[bi++] = verts[i][j].y;
+							positions[bi++] = verts[i][j].z + z;
+						}
+					}
+
+					this.count++;
+					this.needUpdate = true;
+				}
+
+				update() {
+					if (this.needUpdate) {
+						this.geometry.computeBoundingSphere();
+						this.geometry.computeVertexNormals();
+						this.geometry.getAttribute("position").needsUpdate = true;
+						this.geometry.setDrawRange(0, this.count * _secSize / 3);
+						this.needUpdate = false;
+					}
 				}
 			}
 
@@ -242,16 +240,19 @@
 					this.current.y += (this.target.y - this.current.y) * delta * camSpeed;
 					this.cFov += (this.tFov - this.cFov) * delta * fovSpeed;
 
-					camera.position.set(
+					let pos = new THREE.Vector3(
 						this.current.x * _camPosFactor,
 						this.current.y * _camPosFactor,
 						_camPos
 					);
-					camera.lookAt(
+					let look = new THREE.Vector3(
 						this.current.x * _camLookFactor,
 						this.current.y * _camLookFactor,
 						_camLookPos
 					);
+
+					camera.position.set(pos.x, pos.y, pos.z);
+					camera.lookAt(look.x, look.y, look.z);
 					camera.fov = this.cFov;
 					camera.updateProjectionMatrix();
 				}
@@ -266,7 +267,7 @@
 				renderer.setClearColor(_fogColor, 1);
 	      document.body.appendChild(renderer.domElement);
 				scene = new THREE.Scene();
-				scene.fog = new THREE.Fog(_fogColor, 0, _tunnelLength);
+				scene.fog = new THREE.Fog(_fogColor, 0, _tunnelLength - 20);
 	      camera = new THREE.PerspectiveCamera(
 					45,
 					window.innerWidth / window.innerHeight,
@@ -276,9 +277,9 @@
 				clock = new THREE.Clock();
 				elapsed = Math.random() * 20;
 
-				let light1 = new THREE.PointLight(_lightColor, 1, 100, 2);
-				light1.position.set(0, 0, -60);
-				scene.add(light1);
+				light = new THREE.PointLight(_lightColor, 1, 150, 2);
+				light.position.set(0, 0, -100);
+				scene.add(light);
 
 				tunnel = new Tunnel();
 				handler = new MouseHandler();
@@ -318,13 +319,48 @@
 				return res;
 			}
 
+			function generateSectionVerts(r1, r2, len) {
+				let res = [];
+
+				for (let i = 0; i < _ringSegments; i++) {
+					let v = [
+						new THREE.Vector3(r1[i].x, r1[i].y, r1[i].z + len / 2),
+						new THREE.Vector3(
+							r1[(i + 1) % _ringSegments].x,
+							r1[(i + 1) % _ringSegments].y,
+							r1[(i + 1) % _ringSegments].z + len / 2
+						),
+						new THREE.Vector3(r2[i].x, r2[i].y, r2[i].z - len / 2),
+						new THREE.Vector3(
+							r2[(i + 1) % _ringSegments].x,
+							r2[(i + 1) % _ringSegments].y,
+							r2[(i + 1) % _ringSegments].z - len / 2
+						)
+					];
+
+					if (i % 2 == 0) {
+						res.push(
+							[v[0], v[1], v[2]],
+							[v[1], v[2], v[3]]
+						);
+					} else {
+						res.push(
+							[v[0], v[2], v[3]],
+							[v[0], v[1], v[3]]
+						);
+					}
+				}
+
+				return res;
+			}
+
 			function between(pair, n) {
         return n * (pair[1] - pair[0]) + pair[0];
       }
 
 			var scene, camera, renderer, clock, handler;
 			var elapsed;
-			var tunnel;
+			var tunnel, light;
 
 			var currentRadius = 1.5;
 
