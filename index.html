@@ -40,10 +40,7 @@
 			.header-label {
 				font-size: 150px;
 				color: white;
-				transition: all 0.3s ease-in-out;
-			}
-			.header-label:hover {
-				text-shadow: 0 0 30px white;
+				text-shadow: 5px 5px 0 #555;
 			}
 		</style>
 	</head>
@@ -236,7 +233,7 @@
 
 				let header = document.createElement("div");
 				header.className = "header-label";
-				header.textContent = "Welcome! :)"
+				header.textContent = "three.js"
 				header.style.width = _gridWidth + "px";
 				header.style.height = _headerHeight + "px";
 				let header3d = new THREE.CSS3DObject(header);
