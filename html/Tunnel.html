@@ -56,11 +56,11 @@
 			.box {
 				background: transparent;
 				width: 750px;
-				margin: 55px 40px;
-				font-size: 1.8em;
+				margin: 0px 20px;
+				font-size: 1.6em;
 			}
 			.box h1 {
-				font-size: 2em;
+				font-size: 2.6em;
 			}
 			.box block {
 				display: block;
@@ -125,6 +125,10 @@
 			#aa-switcher {
 				grid-column: 3;
 			}
+			#go-box {
+				display: flex;
+				justify-content: center;
+			}
 		</style>
 	</head>
 	<body>
@@ -136,22 +140,26 @@
 						Для начала разверни страницу на весь экран, нажми <key>F11</key></br>
 						Так будет лучше
 					</block>
-					<block>Когда всё начнётся, ты сможешь <high>воспользоваться мышью</high> для разнообразия</block>
 					<block>
-						Перед стартом хочу спросить тебя, использовать ли мне <high>сглаживание</high>?</br>
-						<warning>Это ударит по производительности</warning>, но если у тебя нету
-						проблем с железом, то включай
+						Если что-то вдруг пойдёт не так, ты можешь вернуться сюда,
+						обновив страницу или просто нажав <key>F5</key>
+					</block>
+					<block><high>Воспользуйся мышью</high>, когда всё начнётся. Если хочешь</block>
+					<block>
+						Перед стартом мне нужно знать, использовать ли <high>сглаживание</high>?
+						Так будет чуть красивее, но <warning>это потребует больше сил</warning>,
+						поэтому если хочешь проверить браузер на прочность, то включай
 					</block>
 
 					<div id="aa-cont">
 						<div id="aa-header">
-							AntiAliasing
+							СГЛАЖИВАНИЕ
 						</div>
 						<button class="red" id="aa-switcher">Выкл</button>
 					</div>
 
 					<block>Не умею говорить заключительное слово, так что просто запускай уже</block>
-					<button id="go">Go</button>
+					<div id="go-box"><button id="go">START</button></div>
 				</div>
 			</div>
 
