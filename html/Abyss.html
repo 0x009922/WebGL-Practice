@@ -6,15 +6,15 @@
 		<style>
 			@font-face {
 				font-family: "Monofur";
-				src: url("../fonts/Monofur.ttf");
+				src: url("../src/fonts/Monofur.ttf");
 			}
 			@keyframes fadein {
-				from {opacity: 0; transform: scale(1.02);}
+				from {opacity: 0; transform: scale(1);}
 				to {opacity: 1; transform: scale(1);}
 			}
 			@keyframes fadeout {
 				from {opacity: 1; transform: scale(1);}
-				to {opacity: 0; transform: scale(0.9);}
+				to {opacity: 0; transform: scale(1.1);}
 			}
 			* {
 				box-sizing: border-box;
@@ -23,8 +23,32 @@
 				font-weight:  300;
 				font-size: 27px;
 				line-height: 1.25;
+				user-select: none;
 			}
-			body { margin: 0; overflow: hidden; background: black; }
+			body {
+				margin: 0;
+				overflow: hidden;
+				background: #363537;
+				cursor: default;
+			}
+			button {
+				cursor: pointer;
+			}
+			button:focus {
+        outline: 0;
+      }
+			hr {
+				background-color: #00ff7f;
+				height: 2px;
+				border: none;
+				margin: 50px 0;
+			}
+
+			.center-box {
+				display: flex;
+				justify-content: center;
+			}
+
 			#render-dom {
 				width: 100vw;
 				height: 100vh;
@@ -33,11 +57,12 @@
 				animation: fadein 3s ease-in;
 				animation-fill-mode: forwards;
 			}
+
 			#meeting-container {
 				position: absolute;
 				top: 0;
 				left: 0;
-				background: black;
+				background: #363537;
 				width: 100vw;
 				height: 100vh;
 				display: flex;
@@ -46,9 +71,10 @@
 				animation-fill-mode: forwards;
 				animation-delay: 1s;
 			}
+
 			#cont2 {
 				height: 100vh;
-				background: #00ff7f15;
+				background: transparent;
 				animation: fadein 0.3s ease-in-out;
 				opacity: 0;
 				animation-fill-mode: forwards;
@@ -60,115 +86,83 @@
 			}
 
 			.box {
-				background: transparent;
-				width: 750px;
-				margin: 0px 20px;
+				width: 650px;
+				margin: 20px 0px;
 			}
-			.box h1 {
-				font-size: 2.3em;
+			.main-header {
+				font-size: 7.5em;
+				line-height: 0.75;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+			}
+			.main-header big {
+				font-size: 1.35em;
+				line-height: inherit;
 			}
 			.box block {
 				display: block;
 				margin-bottom: 20px;
 			}
-			.box warning {
-				color: #B22222;
-			}
 			.box key {
 				background: #00ff7f;
-				color: black;
+				color: #363537;
 				padding: 5px 5px;
 				border-radius: 3px;
 			}
-			.box high {
-				background: #00ff7f30;
-				padding: 5px 8px;
+
+			.info {
+				margin-left: 20px;
 			}
 
-			button {
-				border: 2px solid #00ff7f;
-        border-radius: 2px;
-        background: transparent;
-        color: #00ff7f;
-        width: 250px;
-				height: 100px;
-				font-size: 1.5em;
-				margin-bottom: 0px;
-				transition: all 0.15s ease-in-out;
-      }
-      button:focus {
-        outline: 0;
-      }
-			button:hover {
-				background: #00ff7f20;
-			}
-			button:active {
-				background: #00ff7f40;
-			}
+			.sets {
 
-			button[on="false"] {
-				border: 2px solid #B22222;
-				color: #b22222;
 			}
-			button[on="false"]:hover {
-				background: #b2222220;
-			}
-			button[on="false"]:active {
-				background: #b2222240;
-			}
-			button[on="true"] {
-				border: 2px solid #00ff7f;
-				color: #00ff7f;
-			}
-			button[on="true"]:hover {
-				background: #00ff7f20;
-			}
-			button[on="true"]:active {
-				background: #00ff7f40;
-			}
-
-			.switcher-cont {
-				display: grid;
-				grid-template-columns: 1fr 1fr 1fr;
-				margin-bottom: 0px;
-				padding: 15px 30px;
-				transition: all 0.15s ease-in-out;
-			}
-			.switcher-cont[on="false"] {
-				background: #b2222230;
-			}
-			.switcher-cont[on="true"] {
-				background: #00ff7f30;
-			}
-
-			.switcher-cont .header {
-				grid-column: 1;
-				display: flex;
-				align-items: center;
-				font-size: 1.5em;
-				transition: all 0.15s ease-in-out;
-			}
-			.switcher-cont .header[on="false"] {
-				color: #b22222;
-			}
-			.switcher-cont .header[on="true"] {
-				color: #00ff7f;
-			}
-
-			.switcher-cont .switcher {
-				grid-column: 3;
-			}
-
-			#stats-cont {
+			.sets .header {
+				font-size: 2em;
+				color: #3772FF;
 				margin-bottom: 30px;
 			}
-
-			#go-box {
-				display: flex;
-				justify-content: center;
+			.switchers-box {
+				display: grid;
+				grid-template-columns: repeat(2, 1fr);
+				grid-gap: 20px;
+				justify-items: stretch;
 			}
-			#go {
-				margin-bottom: 50px;
+
+			.switchers-box button {
+				border: 2px solid #3772ff;
+				border-radius: 2px;
+				font-size: 1.5em;
+				height: 100px;
+				transition: all 0.2s ease;
+			}
+			.switchers-box button[on="false"] {
+				color: #3772FF;
+				background: transparent;
+			}
+			.switchers-box button[on="true"] {
+				color: #363537;
+				background: #3772FF;
+			}
+
+			#start {
+				border: 2px solid #00ff7f;
+				border-radius: 2px;
+				font-size: 1.5em;
+				width: 150px;
+				height: 80px;
+				background: transparent;
+				transition: all 0.2s ease;
+				margin-bottom: 30px;
+			}
+			#start:hover {
+				background: #00ff7f;
+				color: #363537;
+			}
+			#start:active {
+				background: #00ff7f80;
+				color: #363537;
 			}
 		</style>
 	</head>
@@ -176,47 +170,33 @@
 		<div id="meeting-container">
 			<div id="cont2">
 				<div class="box">
-					<h1>Привет</h1>
-					<block>
-						Перед началом рекомендую тебе развернуть страницу на весь экран,
-						нажав <key>F11</key>, например. Но это необязательно.
-					</block>
-					<block>
-						Если что-то вдруг пойдёт не так, ты можешь вернуться сюда,
-						обновив страницу или просто нажав <key>F5</key>.
-					</block>
-					<block>
-						Ты можешь что-нибудь попробовать поделать, когда всё начнётся.
-					</block>
-					<block>
-						Перед стартом мне нужно знать, использовать ли <high>сглаживание</high>?
-						Так будет чуть красивее, но <warning>это потребует больше сил</warning>,
-						поэтому если хочешь проверить железо на прочность, то включай. Если
-						ты не боишься совсем ничего, можешь попробовать посмотреть,
-						как всё будет выглядеть с <high>постобработкой</high>.
-					</block>
-
-					<div class="switcher-cont" id="aa-cont" on="false">
-						<div class="header" id="aa-header" on="false">
-							Сглаживание
-						</div>
-						<button class="switcher" id="aa-switcher" on="false">Выкл</button>
-					</div>
-					<div class="switcher-cont" id="sh-cont" on="false">
-						<div class="header" id="sh-header" on="false">
-							Постобработка
-						</div>
-						<button class="switcher" id="sh-switcher" on="false">Выкл</button>
-					</div>
-					<div class="switcher-cont" id="stats-cont" on="false">
-						<div class="header" id="stats-header" on="false">
-							Статистика
-						</div>
-						<button class="switcher" id="stats-switcher" on="false">Выкл</button>
+					<div class="center-box">
+						<div class="main-header">AB<big>Y</big>SS</div>
 					</div>
 
-					<block>Не умею говорить заключительное слово, так что просто запускай уже</block>
-					<div id="go-box"><button id="go">START</button></div>
+					<hr/>
+
+					<div class="center-box">
+						<button id="start" onclick="startClick()">START</button>
+					</div>
+
+					<div class="info" hidden>
+						<block>
+							<key>F5</key> - вернуться в меню.
+						</block>
+						<block>
+							<key>F11</key> - полноэкранный режим.
+						</block>
+					</div>
+
+					<div class="sets">
+						<div class="header">Настройки</div>
+						<div class="switchers-box">
+							<button on="false" onclick="aaClick(this)">Сглаживание</button>
+							<button on="false" onclick="ppClick(this)">Постобработка</button>
+							<button on="false" onclick="stClick(this)">Статистика</button>
+						</div>
+					</div>
 				</div>
 			</div>
 
@@ -233,13 +213,13 @@
 			const _camRelaxationSpeed = 1;
 
 			const _normalFOV = 35;
-			const _minFOV = 10;
-			const _maxFOV = 70;
+			const _leftFOV = 10;
+			const _rightFOV = 70;
 			const _fovTargetSpeed = 2;
 			const _fovRelaxationSpeed = 1;
 
 			const _colorTargetSpeed = 2;
-			const _colorRelaxationSpeed = 2;
+			const _colorRelaxationSpeed = 5;
 
 			const _ringSegments = 60;
 			const _randomNumR = 0.3;
@@ -252,14 +232,21 @@
 			const _secSize = _ringSegments * 6 * 3;
 			const _bufferSize = _secSize * 1000;
 
-			const _tunnelColor = 0x000000;
-			const _lightColor = 0x00ff7f;
-			const _alternativeColor = 0x1E90FF;
+			const _tunnelColor = 0xffffff;
+			const _normalColor = 0x00ff7f;
+			const _leftColor = 0xDB3A34;
+			const _rightColor = 0x3772FF;
 
 			// settings
 			var _antialias = false;
 			var _postprocessing = false;
 			var _stats = false;
+
+			// vars
+			var scene, camera, renderer, clock, handler, stats;
+			var elapsed;
+			var tunnel, light;
+			var currentRadius = 1.5;
 
 			class Tunnel {
 				constructor() {
@@ -408,10 +395,12 @@
 					this.cFov = _normalFOV;
 					this.fovSpeed = _fovTargetSpeed;
 
-					this.color1 = toRGB(_lightColor);
-					this.color2 = toRGB(_alternativeColor);
-					this.tColor = toRGB(_lightColor);
-					this.cColor = toRGB(_lightColor);
+					this.normCol = toRGB(_normalColor);
+					this.leftCol = toRGB(_leftColor);
+					this.rightCol = toRGB(_rightColor);
+
+					this.tColor = toRGB(_normalColor);
+					this.cColor = toRGB(_normalColor);
 					this.colorSpeed = _colorTargetSpeed;
 
 					document.body.addEventListener("mousemove", this.onMove.bind(this), false);
@@ -455,17 +444,18 @@
 						fovSpeed = _fovTargetSpeed;
 						camSpeed = _camTargetSpeed;
 						colorSpeed = _colorTargetSpeed;
-						this.tColor.r = this.color2.r;
-						this.tColor.g = this.color2.g;
-						this.tColor.b = this.color2.b;
-						this.tFov = (this.mousestatus == 1) ? _minFOV : _maxFOV;
+						let col = (this.mousestatus == 1) ? this.leftCol : this.rightCol;
+						this.tColor.r = col.r;
+						this.tColor.g = col.g;
+						this.tColor.b = col.b;
+						this.tFov = (this.mousestatus == 1) ? _leftFOV : _rightFOV;
 					} else {
 						fovSpeed = _fovRelaxationSpeed;
 						camSpeed = _camRelaxationSpeed;
 						colorSpeed = _colorRelaxationSpeed;
-						this.tColor.r = this.color1.r;
-						this.tColor.g = this.color1.g;
-						this.tColor.b = this.color1.b;
+						this.tColor.r = this.normCol.r;
+						this.tColor.g = this.normCol.g;
+						this.tColor.b = this.normCol.b;
 						this.target.set(0, 0);
 						this.tFov = _normalFOV;
 					}
@@ -506,11 +496,11 @@
 				});
 				renderer.setPixelRatio( window.devicePixelRatio );
 	      renderer.setSize(window.innerWidth, window.innerHeight);
-				renderer.setClearColor(_lightColor, 1);
+				renderer.setClearColor(_normalColor, 1);
 				renderer.domElement.id = "render-dom";
 	      document.body.appendChild(renderer.domElement);
 				scene = new THREE.Scene();
-				scene.fog = new THREE.Fog(_lightColor, 0, _tunnelLength - 20);
+				scene.fog = new THREE.Fog(_normalColor, 0, _tunnelLength - 20);
 	      camera = new THREE.PerspectiveCamera(
 					45,
 					window.innerWidth / window.innerHeight,
@@ -520,7 +510,7 @@
 				clock = new THREE.Clock();
 				elapsed = Math.random() * 20;
 
-				light = new THREE.PointLight(_lightColor, 1, 150, 2);
+				light = new THREE.PointLight(_normalColor, 3, 150, 2);
 				light.position.set(0, 0, -100);
 				scene.add(light);
 
@@ -618,46 +608,22 @@
 				}
 			}
 
-			var scene, camera, renderer, clock, handler, stats;
-			var elapsed;
-			var tunnel, light;
-
-			var currentRadius = 1.5;
-
-			let aaswitcher = document.getElementById("aa-switcher");
-			aaswitcher.onclick = () => {
-				let on = (aaswitcher.getAttribute("on") == "false");
-				aaswitcher.textContent = on ? "Вкл" : "Выкл";
+			function aaClick(el) {
+				let on = el.getAttribute("on") == "false";
 				_antialias = on;
-
-				aaswitcher.setAttribute("on", on);
-				document.getElementById("aa-header").setAttribute("on", on);
-				document.getElementById("aa-cont").setAttribute("on", on);
+				el.setAttribute("on", on);
 			}
-
-			let shswitcher = document.getElementById("sh-switcher");
-			shswitcher.onclick = () => {
-				let on = (shswitcher.getAttribute("on") == "false");
-				shswitcher.textContent = on ? "Вкл" : "Выкл";
+			function ppClick(el) {
+				let on = el.getAttribute("on") == "false";
 				_postprocessing = on;
-
-				shswitcher.setAttribute("on", on);
-				document.getElementById("sh-header").setAttribute("on", on);
-				document.getElementById("sh-cont").setAttribute("on", on);
+				el.setAttribute("on", on);
 			}
-
-			let statsSwitcher = document.getElementById("stats-switcher");
-			statsSwitcher.onclick = () => {
-				let on = (statsSwitcher.getAttribute("on") == "false");
-				statsSwitcher.textContent = on ? "Вкл" : "Выкл";
+			function stClick(el) {
+				let on = el.getAttribute("on") == "false";
 				_stats = on;
-
-				statsSwitcher.setAttribute("on", on);
-				document.getElementById("stats-header").setAttribute("on", on);
-				document.getElementById("stats-cont").setAttribute("on", on);
+				el.setAttribute("on", on);
 			}
-
-			document.getElementById("go").onclick = () => {
+			function startClick() {
 				let el2 = document.getElementById("meeting-container");
 				el2.style.animation = "fadeout 0.5s ease-out";
 				el2.style.animationFillMode = "forwards";
