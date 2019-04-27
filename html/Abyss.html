@@ -230,11 +230,15 @@
 			const _camPosFactor = -1;
 			const _camTargetSpeed = 2;
 			const _camRelaxationSpeed = 1;
+
 			const _normalFOV = 35;
 			const _minFOV = 10;
 			const _maxFOV = 70;
 			const _fovTargetSpeed = 2;
 			const _fovRelaxationSpeed = 1;
+
+			const _colorTargetSpeed = 2;
+			const _colorRelaxationSpeed = 2;
 
 			const _ringSegments = 60;
 			const _randomNumR = 0.3;
@@ -247,9 +251,9 @@
 			const _secSize = _ringSegments * 6 * 3;
 			const _bufferSize = _secSize * 1000;
 
-			const _tunnelColor = 0;
+			const _tunnelColor = 0x000000;
 			const _lightColor = 0x00ff7f;
-			const _fogColor = 0x00ff7f;
+			const _alternativeColor = 0x1E90FF;
 
 			// settings
 			var _antialias = false;
@@ -282,11 +286,12 @@
 
 					let g = new THREE.BoxGeometry(1, 1, 1);
 
-					let mtrl = new THREE.MeshPhysicalMaterial({
+					let mtrl = new THREE.MeshPhongMaterial({
 						color: _tunnelColor,
-						clearCoat: 0.5,
-						clearCoatRoughness: 1,
-						reflectivity: 0.5,
+						diffuse: 1,
+						shininess: 0,
+						reflectivity: 1,
+						specular: 0xffffff,
 						side: THREE.DoubleSide
 					});
 					this.buffer.update();
@@ -402,6 +407,12 @@
 					this.cFov = _normalFOV;
 					this.fovSpeed = _fovTargetSpeed;
 
+					this.color1 = toRGB(_lightColor);
+					this.color2 = toRGB(_alternativeColor);
+					this.tColor = toRGB(_lightColor);
+					this.cColor = toRGB(_lightColor);
+					this.colorSpeed = _colorTargetSpeed;
+
 					document.body.addEventListener("mousemove", this.onMove.bind(this), false);
 					document.body.addEventListener("mousedown", this.onDown.bind(this), false);
 					document.body.addEventListener("mouseup", this.onUp.bind(this), false);
@@ -437,15 +448,23 @@
 				}
 
 				update(delta) {
-					let fovSpeed, camSpeed;
+					let fovSpeed, camSpeed, colorSpeed;
 
 					if (this.mousestatus > 0 && this.mousestatus < 4) {
 						fovSpeed = _fovTargetSpeed;
 						camSpeed = _camTargetSpeed;
+						colorSpeed = _colorTargetSpeed;
+						this.tColor.r = this.color2.r;
+						this.tColor.g = this.color2.g;
+						this.tColor.b = this.color2.b;
 						this.tFov = (this.mousestatus == 1) ? _minFOV : _maxFOV;
 					} else {
 						fovSpeed = _fovRelaxationSpeed;
 						camSpeed = _camRelaxationSpeed;
+						colorSpeed = _colorRelaxationSpeed;
+						this.tColor.r = this.color1.r;
+						this.tColor.g = this.color1.g;
+						this.tColor.b = this.color1.b;
 						this.target.set(0, 0);
 						this.tFov = _normalFOV;
 					}
@@ -453,6 +472,9 @@
 					this.current.x += (this.target.x - this.current.x) * delta * camSpeed;
 					this.current.y += (this.target.y - this.current.y) * delta * camSpeed;
 					this.cFov += (this.tFov - this.cFov) * delta * fovSpeed;
+					this.cColor.r += (this.tColor.r - this.cColor.r) * delta * colorSpeed;
+					this.cColor.g += (this.tColor.g - this.cColor.g) * delta * colorSpeed;
+					this.cColor.b += (this.tColor.b - this.cColor.b) * delta * colorSpeed;
 
 					let pos = new THREE.Vector3(
 						this.current.x * _camPosFactor,
@@ -469,6 +491,11 @@
 					camera.lookAt(look.x, look.y, look.z);
 					camera.fov = this.cFov;
 					camera.updateProjectionMatrix();
+
+					let hex = toHex(this.cColor)
+					scene.fog.color.setHex(hex);
+					renderer.setClearColor(hex, 1);
+					light.color.set(hex);
 				}
 			}
 
@@ -478,11 +505,11 @@
 				});
 				renderer.setPixelRatio( window.devicePixelRatio );
 	      renderer.setSize(window.innerWidth, window.innerHeight);
-				renderer.setClearColor(_fogColor, 1);
+				renderer.setClearColor(_lightColor, 1);
 				renderer.domElement.id = "render-dom";
 	      document.body.appendChild(renderer.domElement);
 				scene = new THREE.Scene();
-				scene.fog = new THREE.Fog(_fogColor, 0, _tunnelLength - 20);
+				scene.fog = new THREE.Fog(_lightColor, 0, _tunnelLength - 20);
 	      camera = new THREE.PerspectiveCamera(
 					45,
 					window.innerWidth / window.innerHeight,
@@ -578,6 +605,17 @@
 			function between(pair, n) {
         return n * (pair[1] - pair[0]) + pair[0];
       }
+
+			function toHex(c) {
+				return (c.r << 16) + (c.g << 8) + c.b;
+			}
+			function toRGB(hex) {
+				return {
+					r: hex >> 16,
+					g: (hex & 0xff00) >> 8,
+					b: hex & 0xff
+				}
+			}
 
 			var scene, camera, renderer, clock, handler, stats;
 			var elapsed;
