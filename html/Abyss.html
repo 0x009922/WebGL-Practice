@@ -6,24 +6,26 @@
 		<style>
 			@font-face {
 				font-family: "Monofur";
-				src: url("fonts/Monofur.ttf");
+				src: url("../fonts/Monofur.ttf");
 			}
 			@keyframes fadein {
-				from {opacity: 0}
-				to {opacity: 1}
+				from {opacity: 0; transform: scale(1.02);}
+				to {opacity: 1; transform: scale(1);}
 			}
 			@keyframes fadeout {
-				from {opacity: 1}
-				to {opacity: 0}
+				from {opacity: 1; transform: scale(1);}
+				to {opacity: 0; transform: scale(0.9);}
 			}
 			* {
 				box-sizing: border-box;
 				color: #00ff7f;
-				font-family: Monofur, monospace;
+				font-family: Monofur;
 				font-weight:  300;
+				font-size: 27px;
+				line-height: 1.25;
 			}
 			body { margin: 0; overflow: hidden; background: black; }
-			canvas {
+			#render-dom {
 				width: 100vw;
 				height: 100vh;
 				z-index: 10;
@@ -46,21 +48,24 @@
 			}
 			#cont2 {
 				height: 100vh;
-				background: #00ff7f10;
+				background: #00ff7f15;
 				animation: fadein 0.3s ease-in-out;
 				opacity: 0;
 				animation-fill-mode: forwards;
 				animation-delay: 0.1s;
+				overflow-y: auto;
+			}
+			#cont2::-webkit-scrollbar {
+				width: 0;
 			}
 
 			.box {
 				background: transparent;
 				width: 750px;
 				margin: 0px 20px;
-				font-size: 1.6em;
 			}
 			.box h1 {
-				font-size: 2.6em;
+				font-size: 2.3em;
 			}
 			.box block {
 				display: block;
@@ -72,12 +77,12 @@
 			.box key {
 				background: #00ff7f;
 				color: black;
-				padding: 10px 6px 0px 6px;
+				padding: 5px 5px;
 				border-radius: 3px;
 			}
 			.box high {
 				background: #00ff7f30;
-				padding: 8px 6px 0px 6px;
+				padding: 5px 8px;
 			}
 
 			button {
@@ -85,10 +90,10 @@
         border-radius: 2px;
         background: transparent;
         color: #00ff7f;
-        padding: 15px 15px 0 15px;
         width: 250px;
+				height: 100px;
 				font-size: 1.5em;
-				margin-bottom: 20px;
+				margin-bottom: 0px;
 				transition: all 0.15s ease-in-out;
       }
       button:focus {
@@ -100,34 +105,70 @@
 			button:active {
 				background: #00ff7f40;
 			}
-			button.red {
+
+			button[on="false"] {
 				border: 2px solid #B22222;
 				color: #b22222;
 			}
-			button.red:hover {
+			button[on="false"]:hover {
 				background: #b2222220;
 			}
-			button.red:active {
+			button[on="false"]:active {
 				background: #b2222240;
 			}
+			button[on="true"] {
+				border: 2px solid #00ff7f;
+				color: #00ff7f;
+			}
+			button[on="true"]:hover {
+				background: #00ff7f20;
+			}
+			button[on="true"]:active {
+				background: #00ff7f40;
+			}
 
-			#aa-cont {
+			.switcher-cont {
 				display: grid;
 				grid-template-columns: 1fr 1fr 1fr;
-				margin-bottom: 30px;
+				margin-bottom: 0px;
+				padding: 15px 30px;
+				transition: all 0.15s ease-in-out;
 			}
-			#aa-header {
+			.switcher-cont[on="false"] {
+				background: #b2222230;
+			}
+			.switcher-cont[on="true"] {
+				background: #00ff7f30;
+			}
+
+			.switcher-cont .header {
 				grid-column: 1;
 				display: flex;
 				align-items: center;
 				font-size: 1.5em;
+				transition: all 0.15s ease-in-out;
 			}
-			#aa-switcher {
+			.switcher-cont .header[on="false"] {
+				color: #b22222;
+			}
+			.switcher-cont .header[on="true"] {
+				color: #00ff7f;
+			}
+
+			.switcher-cont .switcher {
 				grid-column: 3;
 			}
+
+			#stats-cont {
+				margin-bottom: 30px;
+			}
+
 			#go-box {
 				display: flex;
 				justify-content: center;
+			}
+			#go {
+				margin-bottom: 50px;
 			}
 		</style>
 	</head>
@@ -146,16 +187,31 @@
 					</block>
 					<block><high>Воспользуйся мышью</high>, когда всё начнётся. Если хочешь</block>
 					<block>
-						Перед стартом мне нужно знать, использовать ли <high>сглаживание</high>?
+						Перед стартом мне нужно знать, использовать ли <high>AntiAliasing</high>,
+						то есть <high>сглаживание</high>?
 						Так будет чуть красивее, но <warning>это потребует больше сил</warning>,
-						поэтому если хочешь проверить браузер на прочность, то включай
+						поэтому если хочешь проверить железо на прочность, то включай. Если
+						ты не боишься совсем ничего, можешь попробовать посмотреть,
+						как всё будет выглядеть с <high>постобработкой</high>
 					</block>
 
-					<div id="aa-cont">
-						<div id="aa-header">
-							СГЛАЖИВАНИЕ
+					<div class="switcher-cont" id="aa-cont" on="false">
+						<div class="header" id="aa-header" on="false">
+							AntiAliasing
 						</div>
-						<button class="red" id="aa-switcher">Выкл</button>
+						<button class="switcher" id="aa-switcher" on="false">Выкл</button>
+					</div>
+					<div class="switcher-cont" id="sh-cont" on="false">
+						<div class="header" id="sh-header" on="false">
+							Постобработка
+						</div>
+						<button class="switcher" id="sh-switcher" on="false">Выкл</button>
+					</div>
+					<div class="switcher-cont" id="stats-cont" on="false">
+						<div class="header" id="stats-header" on="false">
+							Статистика
+						</div>
+						<button class="switcher" id="stats-switcher" on="false">Выкл</button>
 					</div>
 
 					<block>Не умею говорить заключительное слово, так что просто запускай уже</block>
@@ -166,6 +222,7 @@
 		</div>
 
 		<script src="../js/three.js"></script>
+		<script src="../js/stats.min.js"></script>
 		<script>
 			const _camLookPos = -7;
 			const _camLookFactor = 2;
@@ -193,7 +250,11 @@
 			const _tunnelColor = 0;
 			const _lightColor = 0x00ff7f;
 			const _fogColor = 0x00ff7f;
+
+			// settings
 			var _antialias = false;
+			var _postprocessing = false;
+			var _stats = false;
 
 			class Tunnel {
 				constructor() {
@@ -418,6 +479,7 @@
 				renderer.setPixelRatio( window.devicePixelRatio );
 	      renderer.setSize(window.innerWidth, window.innerHeight);
 				renderer.setClearColor(_fogColor, 1);
+				renderer.domElement.id = "render-dom";
 	      document.body.appendChild(renderer.domElement);
 				scene = new THREE.Scene();
 				scene.fog = new THREE.Fog(_fogColor, 0, _tunnelLength - 20);
@@ -436,6 +498,10 @@
 
 				tunnel = new Tunnel();
 				handler = new MouseHandler();
+				if (_stats) {
+					stats = new Stats();
+					document.body.appendChild(stats.dom);
+				}
 			}
 
       function animate() {
@@ -452,6 +518,8 @@
 				//updateCamera(delta);
 				tunnel.update(delta);
 				handler.update(delta);
+				if (stats)
+					stats.update();
 
       	renderer.render(scene, camera);
       }
@@ -511,27 +579,45 @@
         return n * (pair[1] - pair[0]) + pair[0];
       }
 
-			var scene, camera, renderer, clock, handler;
+			var scene, camera, renderer, clock, handler, stats;
 			var elapsed;
 			var tunnel, light;
 
 			var currentRadius = 1.5;
-			let switcher = document.getElementById("aa-switcher");
 
-			switcher.onclick = () => {
-				switch(switcher.className) {
-					case "":
-					switcher.className = "red";
-					switcher.textContent = "Выкл";
-					_antialias = false;
-					break;
-					case "red":
-					switcher.className = "";
-					switcher.textContent = "Вкл";
-					_antialias = true;
-					break;
-				}
+			let aaswitcher = document.getElementById("aa-switcher");
+			aaswitcher.onclick = () => {
+				let on = (aaswitcher.getAttribute("on") == "false");
+				aaswitcher.textContent = on ? "Вкл" : "Выкл";
+				_antialias = on;
+
+				aaswitcher.setAttribute("on", on);
+				document.getElementById("aa-header").setAttribute("on", on);
+				document.getElementById("aa-cont").setAttribute("on", on);
 			}
+
+			let shswitcher = document.getElementById("sh-switcher");
+			shswitcher.onclick = () => {
+				let on = (shswitcher.getAttribute("on") == "false");
+				shswitcher.textContent = on ? "Вкл" : "Выкл";
+				_postprocessing = on;
+
+				shswitcher.setAttribute("on", on);
+				document.getElementById("sh-header").setAttribute("on", on);
+				document.getElementById("sh-cont").setAttribute("on", on);
+			}
+
+			let statsSwitcher = document.getElementById("stats-switcher");
+			statsSwitcher.onclick = () => {
+				let on = (statsSwitcher.getAttribute("on") == "false");
+				statsSwitcher.textContent = on ? "Вкл" : "Выкл";
+				_stats = on;
+
+				statsSwitcher.setAttribute("on", on);
+				document.getElementById("stats-header").setAttribute("on", on);
+				document.getElementById("stats-cont").setAttribute("on", on);
+			}
+
 			document.getElementById("go").onclick = () => {
 				let el2 = document.getElementById("meeting-container");
 				el2.style.animation = "fadeout 0.5s ease-out";
