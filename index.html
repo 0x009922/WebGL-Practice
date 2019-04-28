@@ -2,7 +2,7 @@
 <html>
 	<head>
 		<meta charset=utf-8>
-		<title>Navigation</title>
+		<title>Обзор</title>
 		<style>
 			* {
 				box-sizing: border-box;
@@ -15,44 +15,69 @@
 			}
 			body {
 				margin: 0;
-				background: black;
+				background: #EDEDF4;
 				font-family: Monofur, Menlo, Consolas, monospace;
 			}
-			.tile {
-				border: 2px solid white;
-				background: transparent;
-				transition: background 0.3s ease-in-out,
-										opacity 0.3s ease-in-out,
-										color 0.3s ease-in-out;
-				cursor: pointer;
-				color: white;
-			}
-			.tile::selection {
-				color: transparent;
-			}
-			.tile .label {
-				font-size: 40px;
-				margin: 20px;
-				cursor: inherit;
-				text-shadow: 2px 2px 0 black;
-			}
-
 			.header-label {
 				font-size: 150px;
-				color: white;
-				text-shadow: 5px 5px 0 #555;
+				color: #143642;
+			}
+
+			.tile {
+				background: #aaa;
+				transition: opacity 0.2s ease-in-out, background 0.2s ease-in-out, color 0.2s ease-in-out;
+				cursor: pointer;
+				color: #143642;
+				padding: 20px;
+				opacity: 0.75;
+				font-size: 40px;
+			}
+			.tile:hover {
+				opacity: 1;
+			}
+
+			#tile-abyss:hover {
+				color: transparent;
+			}
+			#tile-abyss-hover {
+				background: #363537;
+				color: #00ff7f;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				visibility: hidden;
+				transition: opacity 0.2s ease-in-out;
+				cursor: inherit;
+
+				position: absolute;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+			}
+			#tile-abyss-hover big {
+				font-size: 1.35em;
+				cursor: inherit;
+			}
+
+			#tile-redroom:hover {
+				background: #a00000;
+				color: #EECF6D;
 			}
 		</style>
 	</head>
 	<body>
+		<div id="tile-abyss-hover">
+			AB<big>Y</big>SS
+		</div>
 		<script src="js/three.js"></script>
 		<script src="js/tween.min.js"></script>
 		<script src="js/CSS3DRenderer.js"></script>
 		<script>
 			const _tileWidth = 300;
 			const _tileHeight = 150;
-			const _tileMove = 50;
-			const _tileMoveDuration = 300;
+			const _tileMove = 40;
+			const _tileMoveDuration = 200;
 			const _tileInactiveOpacity = 0.7;
 			const _tilePushDuration = 300;
 			const _cameraMove = 400;
@@ -70,7 +95,7 @@
 			const data = [
 				{
 					label: "First",
-					link: "html/First.html"
+					link: "html/First.html",
 				},
 				{
 					label: "Hexagon experiment",
@@ -95,7 +120,9 @@
 				{
 					label: "Red room",
 					link: "html/RedRoom.html",
-					accent: "#a00000"
+					id: "tile-redroom",
+					back: "#a00000",
+					fore: "#EECF6D"
 				},
 				{
 					label: "Cubes room [VR]",
@@ -112,25 +139,32 @@
 				{
 					label: "Abyss",
 					link: "html/Abyss.html",
-					accent: "#00ff7f"
+					id: "tile-abyss",
+					init: (tile) => {
+						let hoverTile = document.getElementById("tile-abyss-hover");
+						hoverTile.style.visibility = "visible";
+						tile.hover = hoverTile;
+						tile.appendChild(hoverTile);
+					},
+					act: (tile) => {
+						tile.hover.style.opacity = 1;
+					},
+					deact: (tile) => {
+						tile.hover.style.opacity = 0;
+					}
 				}
 			];
 
 			class Tile {
-				constructor(position, accent, data) {
-					if (data.accent) accent = data.accent;
+				constructor(position, data) {
+					this.data = data;
 
 					let tile = document.createElement("div");
 					tile.className = "tile";
-					tile.style.background = "transparent";
-					tile.style.borderColor = accent;
 					tile.style.width = _tileWidth + "px";
 					tile.style.height = _tileHeight + "px";
-
-					let label = document.createElement("div");
-					label.className = "label";
-					label.textContent = data.label;
-					tile.appendChild(label);
+					tile.textContent = data.label;
+					if (data.id) tile.id = data.id;
 
 					tile.onmouseover = this._mouseOver.bind(this);
 					tile.onmouseout = this._mouseOut.bind(this);
@@ -151,10 +185,11 @@
 					);
 					scene.add(this.object);
 
+					if (data.init) data.init(tile);
+
 					this.element = tile;
 					this.positionTween = null;
 					this.position = position;
-					this.accent = accent;
 					this.active = false;
 					this.pushed = false;
 				}
@@ -176,21 +211,11 @@
 				set active(v) {
 					if (v != this._act) {
 						if (v) {
-
-							this.element.style.background = this.accent;
-							this.element.style.opacity = 1;
-							//this.element.style.color = "black";
-
+							if (this.data.act) this.data.act(this.element);
 							this._setMoveTween(1, _tileMoveDuration);
-
 						} else {
-
-							this.element.style.background = "transparent";
-							this.element.style.opacity = _tileInactiveOpacity;
-							this.element.style.color = "white";
-
+							if (this.data.deact) this.data.deact(this.element);
 							this._setMoveTween(0, _tileMoveDuration);
-
 						}
 					}
 					this._act = v;
@@ -221,12 +246,12 @@
 
 				document.body.onmousemove = onMouseMove;
 				document.body.onmouseleave = onMouseLeave;
+				window.onresize = onResize;
 
 				tiles = [];
 				for (let i = 0; i < data.length; i++) {
 					tiles.push(new Tile(
 						gridPosition(i),
-						"hsl(" + Math.floor(Math.random() * 360) + ", 100%, 50%)",
 						data[i]
 					));
 				}
@@ -278,6 +303,12 @@
 			function onMouseLeave(event) {
 				camTarget.set(0, 0, _cameraPositionZ);
 				lookTarget.set(0, 0, 0);
+			}
+
+			function onResize() {
+				renderer.setSize(window.innerWidth, window.innerHeight);
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
 			}
 
 			function gridPosition(index) {
