@@ -14,7 +14,7 @@
 			}
 			@keyframes fadeout {
 				from {opacity: 1; transform: scale(1);}
-				to {opacity: 0; transform: scale(1.1);}
+				to {opacity: 0; transform: scale(0.98);}
 			}
 			* {
 				box-sizing: border-box;
@@ -86,8 +86,8 @@
 			}
 
 			.box {
-				width: 650px;
-				margin: 20px 0px;
+				width: 750px;
+				margin: 50px 0px;
 			}
 			.main-header {
 				font-size: 7.5em;
@@ -111,39 +111,59 @@
 				border-radius: 3px;
 			}
 
+			.infosets-box {
+				display: grid;
+				grid-template-columns: 2fr 1fr;
+				grid-gap: 10px;
+			}
+
 			.info {
-				margin-left: 20px;
+				grid-column: 1;
+			}
+			.info img {
+				width: 200px;
 			}
 
 			.sets {
-
+				grid-column: 2;
+				color: #3772FF;
+			}
+			.header {
+				font-size: 2em;
+				margin-bottom: 30px;
+				line-height: 1;
 			}
 			.sets .header {
-				font-size: 2em;
 				color: #3772FF;
-				margin-bottom: 30px;
-			}
-			.switchers-box {
-				display: grid;
-				grid-template-columns: repeat(2, 1fr);
-				grid-gap: 20px;
-				justify-items: stretch;
 			}
 
 			.switchers-box button {
 				border: 2px solid #3772ff;
 				border-radius: 2px;
-				font-size: 1.5em;
-				height: 100px;
+				font-size: 1.2em;
+				height: 60px;
+				width: 250px;
+				display: block;
+				text-align: left;
+				padding-left: 15px;
+				margin-bottom: 15px;
 				transition: all 0.2s ease;
 			}
 			.switchers-box button[on="false"] {
 				color: #3772FF;
 				background: transparent;
 			}
+			.switchers-box button[on="false"]:active {
+				color: #363537;
+				background: #3772FF;
+			}
 			.switchers-box button[on="true"] {
 				color: #363537;
 				background: #3772FF;
+			}
+			.switchers-box button[on="true"]:active {
+				color: #3772FF;
+				background: transparent;
 			}
 
 			#start {
@@ -161,7 +181,13 @@
 				color: #363537;
 			}
 			#start:active {
-				background: #00ff7f80;
+				background: #00ff7f30;
+				border-color: transparent;
+				color: #363537;
+			}
+			#start[pushed="true"] {
+				background: #00ff7f30;
+				border-color: transparent;
 				color: #363537;
 			}
 		</style>
@@ -177,26 +203,33 @@
 					<hr/>
 
 					<div class="center-box">
-						<button id="start" onclick="startClick()">START</button>
+						<button id="start" onclick="startClick(this)">START</button>
 					</div>
 
-					<div class="info" hidden>
-						<block>
-							<key>F5</key> - вернуться в меню.
-						</block>
-						<block>
-							<key>F11</key> - полноэкранный режим.
-						</block>
-					</div>
+					<div class="infosets-box">
 
-					<div class="sets">
-						<div class="header">Настройки</div>
-						<div class="switchers-box">
-							<button on="false" onclick="aaClick(this)">Сглаживание</button>
-							<button on="false" onclick="ppClick(this)">Постобработка</button>
-							<button on="false" onclick="stClick(this)">Статистика</button>
+						<div class="info">
+							<div class="header">Управление</div>
+							<img src="../src/img/mouse move icon.png"/>
+							<block>
+								<key>F5</key> - вернуться в меню
+							</block>
+							<block>
+								<key>F11</key> - полноэкранный режим
+							</block>
 						</div>
+
+						<div class="sets">
+							<div class="header">Настройки</div>
+							<div class="switchers-box">
+								<button on="false" onclick="aaClick(this)">Сглаживание</button>
+								<button on="false" onclick="ppClick(this)">Постобработка</button>
+								<button on="false" onclick="stClick(this)">Статистика</button>
+							</div>
+						</div>
+
 					</div>
+
 				</div>
 			</div>
 
@@ -205,12 +238,17 @@
 		<script src="../js/three.js"></script>
 		<script src="../js/stats.min.js"></script>
 		<script>
-			const _camLookPos = -7;
+			const _camLookPos = 5;
 			const _camLookFactor = 2;
-			const _camPos = -2;
+			const _camPos = -50;
 			const _camPosFactor = -1;
-			const _camTargetSpeed = 2;
+			const _camTargetSpeed = 1;
 			const _camRelaxationSpeed = 1;
+
+			const _camLeftPos = -65;
+			const _camRightPos = -50;
+			const _camPosSpeed = 1;
+			const _camPosRelaxation = 1;
 
 			const _normalFOV = 35;
 			const _leftFOV = 10;
@@ -221,12 +259,17 @@
 			const _colorTargetSpeed = 2;
 			const _colorRelaxationSpeed = 5;
 
-			const _ringSegments = 60;
+			const _tunnelNormalSpeed = 5;
+			const _tunnelLeftSpeed = 5;
+			const _tunnelRightSpeed = 0.5;
+			const _tstSpeed = 1;
+			const _tsrSpeed = 0.5;
+
+			const _ringSegments = 70;
 			const _randomNumR = 0.3;
-			const _randomNumZ = 0.3;
-			const _sectionLength = [0.5, 2];
+			const _randomNumZ = 0.8;
+			const _sectionLength = [1, 1];
 			const _tunnelLength = 65;
-			const _speed = 5;
 			const _rotationSpeed = 0.2;
 
 			const _secSize = _ringSegments * 6 * 3;
@@ -236,6 +279,9 @@
 			const _normalColor = 0x00ff7f;
 			const _leftColor = 0xDB3A34;
 			const _rightColor = 0x3772FF;
+			const _abyssColor = 0x0;
+			const _fogNear = 30;
+			const _fogFar = 50;
 
 			// settings
 			var _antialias = false;
@@ -247,6 +293,7 @@
 			var elapsed;
 			var tunnel, light;
 			var currentRadius = 1.5;
+			var tunnelSpeed = _tunnelNormalSpeed;
 
 			class Tunnel {
 				constructor() {
@@ -276,21 +323,16 @@
 
 					let mtrl = new THREE.MeshPhongMaterial({
 						color: _tunnelColor,
-						diffuse: 1,
-						shininess: 0,
-						reflectivity: 1,
-						specular: 0xffffff,
 						side: THREE.DoubleSide
 					});
 					this.buffer.update();
 					this.mesh = new THREE.Mesh(this.buffer.geometry, mtrl);
 
 					scene.add(this.mesh);
-					scene.add(new THREE.AxesHelper(15, 15, 15));
 				}
 
 				update(delta) {
-					this.mesh.position.z += _speed * delta;
+					this.mesh.position.z += tunnelSpeed * delta;
 					this.mesh.rotation.z += _rotationSpeed * delta;
 					let currentLength = this.secs.reduce((s, c) => (s + c.length), 0);
 
@@ -389,11 +431,16 @@
 				constructor() {
 					this.target = new THREE.Vector2();
 					this.current = new THREE.Vector2();
+					this.tPos = _camPos;
+					this.cPos = _camPos;
 					this.targetSpeed = _camTargetSpeed;
 
 					this.tFov = _normalFOV;
 					this.cFov = _normalFOV;
 					this.fovSpeed = _fovTargetSpeed;
+
+					this.tst = _tunnelNormalSpeed;
+					this.tsc = _tunnelNormalSpeed;
 
 					this.normCol = toRGB(_normalColor);
 					this.leftCol = toRGB(_leftColor);
@@ -438,44 +485,56 @@
 				}
 
 				update(delta) {
-					let fovSpeed, camSpeed, colorSpeed;
+					let fovSpeed, camSpeed, camPosSpeed, colorSpeed, tsSpeed;
 
 					if (this.mousestatus > 0 && this.mousestatus < 4) {
 						fovSpeed = _fovTargetSpeed;
 						camSpeed = _camTargetSpeed;
 						colorSpeed = _colorTargetSpeed;
+						camPosSpeed = _camPosSpeed;
+						tsSpeed = _tstSpeed;
+
 						let col = (this.mousestatus == 1) ? this.leftCol : this.rightCol;
 						this.tColor.r = col.r;
 						this.tColor.g = col.g;
 						this.tColor.b = col.b;
+						this.tPos = (this.mousestatus == 1) ? _camLeftPos : _camRightPos;
 						this.tFov = (this.mousestatus == 1) ? _leftFOV : _rightFOV;
+						this.tst = (this.mousestatus == 1) ? _tunnelLeftSpeed : _tunnelRightSpeed;
 					} else {
 						fovSpeed = _fovRelaxationSpeed;
 						camSpeed = _camRelaxationSpeed;
 						colorSpeed = _colorRelaxationSpeed;
+						camPosSpeed = _camPosRelaxation;
+						tsSpeed = _tsrSpeed;
+
 						this.tColor.r = this.normCol.r;
 						this.tColor.g = this.normCol.g;
 						this.tColor.b = this.normCol.b;
 						this.target.set(0, 0);
+						this.tPos = _camPos;
 						this.tFov = _normalFOV;
+						this.tst = _tunnelNormalSpeed;
 					}
 
 					this.current.x += (this.target.x - this.current.x) * delta * camSpeed;
 					this.current.y += (this.target.y - this.current.y) * delta * camSpeed;
+					this.cPos += (this.tPos - this.cPos) * delta * camSpeed;
 					this.cFov += (this.tFov - this.cFov) * delta * fovSpeed;
 					this.cColor.r += (this.tColor.r - this.cColor.r) * delta * colorSpeed;
 					this.cColor.g += (this.tColor.g - this.cColor.g) * delta * colorSpeed;
 					this.cColor.b += (this.tColor.b - this.cColor.b) * delta * colorSpeed;
+					this.tsc += (this.tst - this.tsc) * delta * tsSpeed;
 
 					let pos = new THREE.Vector3(
-						this.current.x * _camPosFactor,
+						-this.current.x * _camPosFactor,
 						this.current.y * _camPosFactor,
-						_camPos
+						this.cPos
 					);
 					let look = new THREE.Vector3(
-						this.current.x * _camLookFactor,
+						-this.current.x * _camLookFactor,
 						this.current.y * _camLookFactor,
-						_camLookPos
+						this.cPos + _camLookPos
 					);
 
 					camera.position.set(pos.x, pos.y, pos.z);
@@ -487,6 +546,8 @@
 					scene.fog.color.setHex(hex);
 					renderer.setClearColor(hex, 1);
 					light.color.set(hex);
+
+					tunnelSpeed = this.tsc;
 				}
 			}
 
@@ -500,7 +561,7 @@
 				renderer.domElement.id = "render-dom";
 	      document.body.appendChild(renderer.domElement);
 				scene = new THREE.Scene();
-				scene.fog = new THREE.Fog(_normalColor, 0, _tunnelLength - 20);
+				scene.fog = new THREE.Fog(_normalColor, _fogNear, _fogFar);
 	      camera = new THREE.PerspectiveCamera(
 					45,
 					window.innerWidth / window.innerHeight,
@@ -511,7 +572,7 @@
 				elapsed = Math.random() * 20;
 
 				light = new THREE.PointLight(_normalColor, 3, 150, 2);
-				light.position.set(0, 0, -100);
+				light.position.set(0, 0, 5);
 				scene.add(light);
 
 				tunnel = new Tunnel();
@@ -520,6 +581,8 @@
 					stats = new Stats();
 					document.body.appendChild(stats.dom);
 				}
+
+				window.addEventListener("resize", onResize);
 			}
 
       function animate() {
@@ -597,6 +660,12 @@
         return n * (pair[1] - pair[0]) + pair[0];
       }
 
+			function onResize() {
+				renderer.setSize(window.innerWidth, window.innerHeight);
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+			}
+
 			function toHex(c) {
 				return (c.r << 16) + (c.g << 8) + c.b;
 			}
@@ -623,15 +692,17 @@
 				_stats = on;
 				el.setAttribute("on", on);
 			}
-			function startClick() {
+			function startClick(el) {
+				el.setAttribute("pushed", true);
+
 				let el2 = document.getElementById("meeting-container");
-				el2.style.animation = "fadeout 0.5s ease-out";
+				el2.style.animation = "fadeout 0.2s ease-out";
 				el2.style.animationFillMode = "forwards";
 				el2.style.animationDelay = "0s";
 				setTimeout(() => {
 					init();
 					animate();
-				}, 500);
+				}, 200);
 			}
 		</script>
 	</body>
