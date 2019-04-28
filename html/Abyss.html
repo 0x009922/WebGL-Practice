@@ -86,11 +86,11 @@
 			}
 
 			.box {
-				width: 750px;
+				width: 650px;
 				margin: 50px 0px;
 			}
 			.main-header {
-				font-size: 7.5em;
+				font-size: 5.5em;
 				line-height: 0.75;
 				display: flex;
 				align-items: center;
@@ -174,7 +174,6 @@
 				height: 80px;
 				background: transparent;
 				transition: all 0.2s ease;
-				margin-bottom: 30px;
 			}
 			#start:hover {
 				background: #00ff7f;
@@ -206,11 +205,13 @@
 						<button id="start" onclick="startClick(this)">START</button>
 					</div>
 
+					<hr/>
+
 					<div class="infosets-box">
 
 						<div class="info">
 							<div class="header">Управление</div>
-							<img src="../src/img/mouse move icon.png"/>
+							<img src="../src/img/mouse move icon.png" hidden/>
 							<block>
 								<key>F5</key> - вернуться в меню
 							</block>
@@ -240,17 +241,21 @@
 
 		<script src="../js/shaders/CopyShader.js"></script>
 		<script src="../js/shaders/AfterimageShader.js"></script>
-		<script src="../js/shaders/HalftoneShader.js"></script>
+		<!--<script src="../js/shaders/HalftoneShader.js"></script>
 		<script src="../js/shaders/DepthLimitedBlurShader.js"></script>
 		<script src="../js/shaders/UnpackDepthRGBAShader.js"></script>
-		<script src="../js/shaders/DotScreenShader.js"></script>
+		<script src="../js/shaders/DotScreenShader.js"></script>-->
+		<script src="../js/shaders/FilmShader.js"></script>
+		<script src="../js/shaders/LuminosityHighPassShader.js"></script>
 
 		<script src="../js/postprocessing/EffectComposer.js"></script>
 		<script src="../js/postprocessing/RenderPass.js"></script>
 		<script src="../js/postprocessing/MaskPass.js"></script>
 		<script src="../js/postprocessing/ShaderPass.js"></script>
 		<script src="../js/postprocessing/AfterimagePass.js"></script>
-		<script src="../js/postprocessing/HalftonePass.js"></script>
+		<!--<script src="../js/postprocessing/HalftonePass.js"></script>-->
+		<script src="../js/postprocessing/FilmPass.js"></script>
+		<script src="../js/postprocessing/UnrealBloomPass.js"></script>
 
 		<script>
 			const _camLookPos = 5;
@@ -280,6 +285,8 @@
 			const _tstSpeed = 1;
 			const _tsrSpeed = 0.5;
 
+			const _afterimageValueSpeed = 2;
+
 			const _ringSegments = 70;
 			const _randomNumR = 0.3;
 			const _randomNumZ = 0.8;
@@ -297,6 +304,7 @@
 			const _abyssColor = 0x0;
 			const _fogNear = 30;
 			const _fogFar = 50;
+			const _exposure = 2;
 
 			// settings
 			var _antialias = false;
@@ -304,24 +312,18 @@
 			var _stats = false;
 
 			// post-postprocessing
-			const _halftoneParams = {
-				shape: 3,
-				radius: 4,
-				rotateR: Math.PI / 12,
-				rotateB: Math.PI / 12 * 2,
-				rotateG: Math.PI / 12 * 3,
-				scatter: 1,
-				blending: 0.5,
-				blendingMode: 1,
-				greyscale: false,
-				disable: false
+			const _afterimageValue = 0.8;
+			const _bloomParams = {
+				exposure: 1,
+				bloomStrength: 1.5,
+				bloomThreshold: 0,
+				bloomRadius: 0
 			};
-			const _afterimageValue = 0.9;
-			const _dotscreenScale = 4;
 
 			// vars
 			var scene, camera, renderer, clock, handler, stats, shHandler;
 			var composer, afterimagePass, halftonePass, dotscreenPass;
+			var bloomPass, filmPass;
 			var elapsed;
 			var tunnel, light;
 			var currentRadius = 1.5;
@@ -588,34 +590,36 @@
 			class ShadersHandler {
 				constructor() {
 					this.ms = 0;
-					afterimagePass.enabled = false;
-					halftonePass.enabled = true;
+
+					this.aiTarget = 0;
+					this.aiCurrent = 0;
+					filmPass.enabled = false;
 				}
 
 				set mousestatus(v) {
+					if (v == 4) v = 0;
 					if (this.ms == v) return;
 
-					switch (this.ms) {
-						case 0:
-						case 4:
-						if (v == 0 || v == 4) break;
-						halftonePass.enabled = false;
-						afterimagePass.enabled = true;
-						afterimagePass.uniforms["damp"].value = 0;
-						requestAnimationFrame(() => {
-							afterimagePass.uniforms["damp"].value = _afterimageValue;
-						})
-						break;
-
-						case 1:
-						case 3:
-						if (v == 1 || v == 3) break;
-						afterimagePass.enabled = false;
-						halftonePass.enabled = true;
-						break;
+					if (v == 0) {
+						this.aiTarget = 0;
 					}
+					if (v == 1) {
+						this.aiTarget = this.aiCurrent = 0;
+						requestAnimationFrame(() => {
+							this.aiTarget = this.aiCurrent = _afterimageValue;
+						});
+					}
+					filmPass.enabled = v == 1;
 
 					this.ms = v;
+				}
+
+				update(delta) {
+					this.aiCurrent +=
+						(this.aiTarget - this.aiCurrent) * delta * _afterimageValueSpeed;
+
+					afterimagePass.uniforms["damp"].value =
+						Math.floor(this.aiCurrent * 100) / 100;
 				}
 			}
 
@@ -655,22 +659,23 @@
 					composer = new THREE.EffectComposer(renderer);
 
 					afterimagePass = new THREE.AfterimagePass(_afterimageValue);
-					halftonePass = new THREE.HalftonePass(
-						window.innerWidth,
-						window.innerHeight,
-						_halftoneParams
-					);
-					dotscreenPass = new THREE.ShaderPass(THREE.DotScreenShader);
-					dotscreenPass.uniforms["center"].value.copy(new THREE.Vector2(0, 0));
-					dotscreenPass.uniforms["angle"].value = 0.5;
-					dotscreenPass.uniforms["scale"].value = 0.8;
+
+					filmPass = new THREE.FilmPass( 5.35, .025, 1048, false );
+
+					bloomPass = new THREE.UnrealBloomPass( new THREE.Vector2( window.innerWidth, window.innerHeight ), 1.5, 0.4, 0.85 );
+					bloomPass.threshold = _bloomParams.bloomThreshold;
+					bloomPass.strength = _bloomParams.bloomStrength;
+					bloomPass.radius = _bloomParams.bloomRadius;
+					renderer.toneMappingExposure = Math.pow( _bloomParams.exposure, 4.0 );
 
 					composer.addPass(new THREE.RenderPass(scene, camera));
-					//composer.addPass(halftonePass);
-					//composer.addPass(afterimagePass);
-					composer.addPass(dotscreenPass);
+					composer.addPass(bloomPass);
+					composer.addPass(afterimagePass);
+					composer.addPass(filmPass);
 
 					shHandler = new ShadersHandler();
+				} else {
+					renderer.toneMappingExposure = _exposure;
 				}
 
 				window.addEventListener("resize", onResize);
@@ -694,6 +699,7 @@
 					stats.update();
 
 				if (_postprocessing) {
+					shHandler.update(delta);
 					composer.render();
 				} else {
 					renderer.render(scene, camera);
